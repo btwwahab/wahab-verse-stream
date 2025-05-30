@@ -1,6 +1,5 @@
 // === Movie API Integration ===
 const baseUrl = "https://api.themoviedb.org/3";
-const API_KEY = "ecb37597e45cfeed0586f3cd57233d0b";
 const imageUrlW500 = "https://image.tmdb.org/t/p/w500";
 const imageUrl = "https://image.tmdb.org/t/p/original";
 
@@ -12,7 +11,8 @@ let moviesData = {
 
 async function fetchTrending() {
     try {
-        const response = await fetch(`${baseUrl}/trending/all/day?api_key=${API_KEY}`);
+        // Use our API proxy instead of direct TMDb call
+        const response = await fetch(`/api/tmdb?endpoint=/trending/all/day`);
         const data = await response.json();
         return formatTMDbData(data.results);
     } catch (error) {
@@ -23,7 +23,7 @@ async function fetchTrending() {
 
 async function fetchMovies() {
     try {
-        const response = await fetch(`${baseUrl}/movie/popular?api_key=${API_KEY}`);
+        const response = await fetch(`/api/tmdb?endpoint=/movie/popular`);
         const data = await response.json();
         return formatTMDbData(data.results, 'movie');
     } catch (error) {
@@ -34,7 +34,7 @@ async function fetchMovies() {
 
 async function fetchSeries() {
     try {
-        const response = await fetch(`${baseUrl}/tv/popular?api_key=${API_KEY}`);
+        const response = await fetch(`/api/tmdb?endpoint=/tv/popular`);
         const data = await response.json();
         return formatTMDbData(data.results, 'tv');
     } catch (error) {
@@ -45,7 +45,7 @@ async function fetchSeries() {
 
 async function fetchVideos(id, mediaType) {
     try {
-        const response = await fetch(`${baseUrl}/${mediaType}/${id}/videos?api_key=${API_KEY}`);
+        const response = await fetch(`/api/tmdb?endpoint=/${mediaType}/${id}/videos`);
         const data = await response.json();
         return data.results || [];
     } catch (error) {
@@ -57,8 +57,8 @@ async function fetchVideos(id, mediaType) {
 async function fetchGenres() {
     try {
         const [movieResponse, tvResponse] = await Promise.all([
-            fetch(`${baseUrl}/genre/movie/list?api_key=${API_KEY}`),
-            fetch(`${baseUrl}/genre/tv/list?api_key=${API_KEY}`)
+            fetch(`/api/tmdb?endpoint=/genre/movie/list`),
+            fetch(`/api/tmdb?endpoint=/genre/tv/list`)
         ]);
 
         if (!movieResponse.ok || !tvResponse.ok) {
@@ -89,8 +89,8 @@ async function fetchGenres() {
 async function fetchContentByGenre(genreId, page = 1) {
     try {
         const [movieResponse, tvResponse] = await Promise.all([
-            fetch(`${baseUrl}/discover/movie?api_key=${API_KEY}&with_genres=${genreId}&sort_by=popularity.desc&page=${page}`),
-            fetch(`${baseUrl}/discover/tv?api_key=${API_KEY}&with_genres=${genreId}&sort_by=popularity.desc&page=${page}`)
+            fetch(`/api/tmdb?endpoint=/discover/movie&with_genres=${genreId}&sort_by=popularity.desc&page=${page}`),
+            fetch(`/api/tmdb?endpoint=/discover/tv&with_genres=${genreId}&sort_by=popularity.desc&page=${page}`)
         ]);
 
         if (!movieResponse.ok || !tvResponse.ok) {
@@ -110,6 +110,7 @@ async function fetchContentByGenre(genreId, page = 1) {
     }
 }
 
+// Rest of the code remains the same
 function formatTMDbData(items, forcedType = null) {
     if (!items || !Array.isArray(items)) return [];
 

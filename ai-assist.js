@@ -1,7 +1,4 @@
 // === AI Chat Assistant Integration ===
-const GROK_API_KEY = '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';
-const GROK_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-
 function setupAIChat() {
     const aiToggle = document.getElementById('aiAssistantToggle');
     const aiChatSend = document.getElementById('aiChatSend');
@@ -184,40 +181,13 @@ Please ask me something about movies or TV shows! 🍿`);
         aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
 
         try {
-            const response = await fetch(GROK_API_URL, {
-                method: "POST",
+            // Use our API proxy instead of direct Groq API call
+            const response = await fetch('/api/chat', {
+                method: 'POST',
                 headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${GROK_API_KEY}`
+                    'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    model: "llama3-8b-8192",
-                    messages: [
-                        {
-                            role: "system",
-                            content: `You are WAHAB VERSE AI, specialized in movies and TV shows ONLY. Never discuss non-entertainment topics. 
-
-IMPORTANT FORMATTING RULES:
-- When recommending movies/shows, format titles with **bold** markdown
-- Use bullet points (•) for lists
-- Separate each recommendation with line breaks
-- Include brief descriptions after titles
-- Use emojis to make responses engaging
-
-Example format:
-**The Dark Knight** (2008) 🦇
-A masterpiece superhero film with incredible performances.
-
-**Inception** (2010) 🌀  
-Mind-bending sci-fi thriller about dreams within dreams.
-
-Always redirect to movies/TV if asked about other topics.`
-                        },
-                        { role: "user", content: message }
-                    ],
-                    max_tokens: 400,
-                    temperature: 0.7
-                })
+                body: JSON.stringify({ message })
             });
 
             const data = await response.json();
@@ -237,7 +207,7 @@ Always redirect to movies/TV if asked about other topics.`
             }
 
         } catch (error) {
-            console.error('Grok API Error:', error);
+            console.error('AI API Error:', error);
 
             // Remove typing indicator
             const typingElement = document.getElementById(typingId);
@@ -292,6 +262,7 @@ Always redirect to movies/TV if asked about other topics.`
     }
 }
 
+// Rest of the code remains the same...
 function startExperience() {
     // Show notification first
     showNotification('🚀 Initializing Neural Experience...', 'info');
