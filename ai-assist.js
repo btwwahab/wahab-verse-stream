@@ -151,16 +151,14 @@ function setupAIChat() {
             addMessage('ai', `🚫 I'm WAHAB VERSE AI - I only discuss movies and TV shows!
 
 🎬 I can help you with:
-• Movie recommendations
-• TV series suggestions  
+• Movie recommendations from our platform
+• TV series suggestions available here
 • Genre explanations
-• Actor/Director information
 • Plot summaries & reviews
-• Streaming platform advice
-• Entertainment ratings
+• Platform content ratings
 
-Please ask me something about movies or TV shows! 🍿`);
-            return; // STOP HERE
+Please ask me something about movies or TV shows available on our platform! 🍿`);
+            return;
         }
 
         // Show user message
@@ -174,20 +172,37 @@ Please ask me something about movies or TV shows! 🍿`);
           <i class="fas fa-robot me-2"></i>WAHAB VERSE AI
         </div>
         <div style="color: var(--text-secondary);">
-          <i class="fas fa-spinner fa-spin me-2"></i>Analyzing your request...
+          <i class="fas fa-spinner fa-spin me-2"></i>Analyzing our platform content...
         </div>
       </div>
     `;
         aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
 
+        // Get available movies from our platform
+        const availableMovies = getAvailableMoviesForAI();
+
+        // Create a context string with available movies
+        const movieContext = availableMovies.slice(0, 50).map(movie =>
+            `${movie.title} (${movie.year}) - ${movie.genre} - ${movie.mediaType}`
+        ).join('\n');
+
         try {
-            // Use our API proxy instead of direct Groq API call
+            // Enhanced message with platform context
+            const enhancedMessage = `${message}
+
+IMPORTANT: Only recommend movies/shows from this available content list. Do not suggest anything not in this list:
+
+AVAILABLE CONTENT:
+${movieContext}
+
+Only suggest from the above list. Make movie titles clickable by formatting them as: [MOVIE_TITLE](${movie.id})`;
+
             const response = await fetch('/api/chat', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ message })
+                body: JSON.stringify({ message: enhancedMessage })
             });
 
             const data = await response.json();
@@ -199,8 +214,8 @@ Please ask me something about movies or TV shows! 🍿`);
             if (data.choices && data.choices[0] && data.choices[0].message) {
                 let aiReply = data.choices[0].message.content;
 
-                // Enhanced formatting for better readability
-                aiReply = formatAIResponse(aiReply);
+                // Enhanced formatting with clickable movie titles
+                aiReply = formatAIResponseWithClickableMovies(aiReply, availableMovies);
                 addMessage('ai', aiReply);
             } else {
                 addMessage('ai', 'Sorry, I couldn\'t process that movie/TV request. Please try again! 🎬');
@@ -213,7 +228,9 @@ Please ask me something about movies or TV shows! 🍿`);
             const typingElement = document.getElementById(typingId);
             if (typingElement) typingElement.remove();
 
-            addMessage('ai', 'Neural connection error! Please check your internet connection and try again. 🔌');
+            // Fallback to local recommendations
+            const localRecommendation = generateLocalRecommendation(message, availableMovies);
+            addMessage('ai', localRecommendation);
         }
     }
 
@@ -314,6 +331,129 @@ function startExperience() {
         showNotification('🤖 WAHAB VERSE AI Assistant is ready! Start chatting.', 'success');
     }, 1000);
 }
+
+function getAvailableMoviesForAI() {
+    const allContent = [...moviesData.trending, ...moviesData.movies, ...moviesData.series];
+
+    // Remove duplicates and format for AI
+    const uniqueContent = allContent.filter((item, index, self) =>
+        index === self.findIndex(t => t.id === item.id)
+    );
+
+    return uniqueContent.map(item => ({
+        id: item.id,
+        title: item.title,
+        genre: item.genre,
+        year: item.year,
+        rating: item.rating,
+        overview: item.overview,
+        mediaType: item.mediaType
+    }));
+}
+
+function formatAIResponseWithClickableMovies(text, availableMovies) {
+    // First apply existing formatting
+    text = formatAIResponse(text);
+
+    // Make movie titles clickable
+    availableMovies.forEach(movie => {
+        const titleRegex = new RegExp(`\\b${escapeRegExp(movie.title)}\\b`, 'gi');
+        text = text.replace(titleRegex,
+            `<span class="clickable-movie" 
+                   data-movie-id="${movie.id}" 
+                   style="color: var(--accent); font-weight: 700; cursor: pointer; text-decoration: underline; border-bottom: 2px solid var(--primary);"
+                   onclick="playMovieFromChat(${movie.id})"
+                   onmouseover="this.style.color='var(--primary)'"
+                   onmouseout="this.style.color='var(--accent)'">
+                ${movie.title}
+            </span>`
+        );
+    });
+
+    return text;
+}
+
+// Helper function to escape special regex characters
+function escapeRegExp(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// Generate local recommendation when API fails
+function generateLocalRecommendation(query, availableMovies) {
+    const lowerQuery = query.toLowerCase();
+    let recommendations = [];
+
+    // Genre-based recommendations
+    if (lowerQuery.includes('action')) {
+        recommendations = availableMovies.filter(m => m.genre.toLowerCase().includes('action')).slice(0, 5);
+    } else if (lowerQuery.includes('comedy')) {
+        recommendations = availableMovies.filter(m => m.genre.toLowerCase().includes('comedy')).slice(0, 5);
+    } else if (lowerQuery.includes('horror')) {
+        recommendations = availableMovies.filter(m => m.genre.toLowerCase().includes('horror')).slice(0, 5);
+    } else if (lowerQuery.includes('drama')) {
+        recommendations = availableMovies.filter(m => m.genre.toLowerCase().includes('drama')).slice(0, 5);
+    } else {
+        // Default to top rated available movies
+        recommendations = availableMovies
+            .sort((a, b) => b.rating - a.rating)
+            .slice(0, 5);
+    }
+
+    if (recommendations.length === 0) {
+        return 'Sorry, no movies found matching your criteria on our platform. Try a different genre or search term! 🎬';
+    }
+
+    let response = `🎬 <strong>Available on WAHAB VERSE Platform:</strong><br><br>`;
+
+    recommendations.forEach((movie, index) => {
+        response += `${index + 1}. <span class="clickable-movie" 
+                                    data-movie-id="${movie.id}" 
+                                    style="color: var(--accent); font-weight: 700; cursor: pointer; text-decoration: underline; border-bottom: 2px solid var(--primary);"
+                                    onclick="playMovieFromChat(${movie.id})"
+                                    onmouseover="this.style.color='var(--primary)'"
+                                    onmouseout="this.style.color='var(--accent)'">
+                        ${movie.title}
+                     </span> (${movie.year}) - ${movie.genre}<br>
+                     ⭐ ${movie.rating.toFixed(1)}/5<br><br>`;
+    });
+
+    response += `<br>🎯 Click on any movie title to watch it instantly!`;
+
+    return response;
+}
+
+// Add this function to handle movie clicks from chat
+window.playMovieFromChat = async function (movieId) {
+    try {
+        // Find the movie in our data
+        const allContent = [...moviesData.trending, ...moviesData.movies, ...moviesData.series];
+        const movie = allContent.find(item => item.id === movieId);
+
+        if (!movie) {
+            showNotification('Movie not found on platform', 'warning');
+            return;
+        }
+
+        // Close AI chat modal
+        const aiModal = bootstrap.Modal.getInstance(document.getElementById('aiChatModal'));
+        if (aiModal) {
+            aiModal.hide();
+        }
+
+        // Show loading notification
+        showNotification('🎬 Loading movie details...', 'info');
+
+        // Open movie modal
+        await showMovieInfo(movie);
+
+        // Show success notification
+        showNotification(`🎯 Now showing: ${movie.title}`, 'success');
+
+    } catch (error) {
+        console.error('Error playing movie from chat:', error);
+        showNotification('Failed to load movie. Please try again.', 'danger');
+    }
+};
 
 // Initialize AI Chat when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {

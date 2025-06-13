@@ -24,7 +24,7 @@ module.exports = async (req, res) => {
 
   try {
     const message = req.body.message;
-    
+
     if (!message) {
       return res.status(400).json({ error: 'Message is required' });
     }
@@ -39,35 +39,40 @@ module.exports = async (req, res) => {
             role: "system",
             content: `You are WAHAB VERSE AI, specialized in movies and TV shows ONLY. Never discuss non-entertainment topics.
 
-IMPORTANT FORMATTING RULES:
-- When recommending movies/shows, format titles with **bold** markdown
-- Use bullet points (•) for lists
-- Separate each recommendation with line breaks
-- Include brief descriptions after titles
-- Use emojis to make responses engaging
+          CRITICAL INSTRUCTIONS:
+          - ONLY recommend movies/shows from the provided AVAILABLE CONTENT list
+          - Never suggest movies not in the available content list
+          - When recommending, use the exact movie titles from the list
+          - Format movie titles in **bold** markdown
+          - Include brief descriptions and ratings when available
+          - If asked about unavailable content, redirect to available alternatives
 
-Example format:
-**The Dark Knight** (2008) 🦇
-A masterpiece superhero film with incredible performances.
+          IMPORTANT FORMATTING RULES:
+          - Use **bold** markdown for movie titles
+          - Use bullet points (•) for lists
+          - Include year and genre information
+          - Use emojis to make responses engaging
+          - Keep recommendations concise but informative
 
-**Inception** (2010) 🌀  
-Mind-bending sci-fi thriller about dreams within dreams.
+          Example format for recommendations:
+          **Movie Title** (Year) 🎬
+          Brief description with genre and rating info.
 
-Always redirect to movies/TV if asked about other topics.`
+          Always redirect to movies/TV if asked about other topics and remind users you only discuss content available on WAHAB VERSE platform.`
           },
           { role: "user", content: message }
         ],
-        max_tokens: 400,
+        max_tokens: 500,
         temperature: 0.7
       },
       {
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.GROQ_API_KEY}`
+          'Authorization': `Bearer ${groqApiKey}`,
+          'Content-Type': 'application/json'
         }
       }
     );
-    
+
     return res.status(200).json(response.data);
   } catch (error) {
     console.error('AI Chat API Error:', error);

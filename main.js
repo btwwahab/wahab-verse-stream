@@ -181,7 +181,7 @@ function cleanupDuplicateSections() {
   });
 }
 
-async function showMovieInfo(movie) {
+async function showMovieInfo(movie, directPlay = false) {
   const modalElement = document.getElementById('movieModal');
   if (!modalElement) {
     console.error('Movie modal not found');
@@ -215,7 +215,7 @@ async function showMovieInfo(movie) {
         <div class="col-12 mb-4">
           ${trailer ?
         `<div class="video-container">
-              <iframe src="https://www.youtube.com/embed/${trailer.key}" 
+              <iframe src="https://www.youtube.com/embed/${trailer.key}${directPlay ? '?autoplay=1' : ''}" 
                       frameborder="0" allowfullscreen
                       class="neural-video"></iframe>
             </div>` :
@@ -231,7 +231,10 @@ async function showMovieInfo(movie) {
         </div>
         <div class="col-md-8">
           <h4 class="mb-3 text-glow" style="color: var(--primary);">${movie.title}</h4>
-          <p class="mb-2"><strong>Genre:</strong> <span style="color: var(--secondary);">${movie.genre}</span></p>
+          <span class="platform-available">
+            <i class="fas fa-check-circle me-1"></i>Available on WAHAB VERSE
+          </span>
+          <p class="mb-2 mt-3"><strong>Genre:</strong> <span style="color: var(--secondary);">${movie.genre}</span></p>
           <div class="mb-3">
             <span style="color: var(--accent);">${generateStars(movie.rating)}</span>
             <span class="ms-2" style="color: var(--text-bright);">${movie.rating.toFixed(1)}/5</span>
@@ -252,6 +255,13 @@ async function showMovieInfo(movie) {
 
   // Store movie data for play button
   window.currentMovie = { movie, trailer };
+  
+  // Auto-play if requested from chat
+  if (directPlay && trailer) {
+    setTimeout(() => {
+      playMoviePreview();
+    }, 1000);
+  }
 }
 
 // New function to handle full-screen preview
