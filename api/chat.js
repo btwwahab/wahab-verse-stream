@@ -1,4 +1,3 @@
-// Serverless function to proxy AI chat requests
 const axios = require('axios');
 
 module.exports = async (req, res) => {
@@ -11,25 +10,47 @@ module.exports = async (req, res) => {
     'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
   );
 
-  // Handle OPTIONS request for CORS preflight
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
   }
 
-  // Only allow POST requests
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const message = req.body.message;
+    const { message, system } = req.body;
 
     if (!message) {
       return res.status(400).json({ error: 'Message is required' });
     }
 
-    // Make request to Groq API with the secret API key
+    // Use custom system prompt if provided, otherwise use default
+    const systemPrompt = system || `You are WAHAB VERSE AI Neural v2.0, the most advanced entertainment AI assistant. You have sophisticated emotional intelligence and can analyze user moods perfectly.
+
+PERSONALITY:
+- Highly intelligent and perceptive
+- Professional yet warm and engaging  
+- Expert at mood analysis and personalized recommendations
+- Deep knowledge of film theory and storytelling
+
+RESPONSE STYLE:
+- Use sophisticated language with emotional intelligence
+- Provide detailed analysis of why content matches their mood/preferences
+- Include psychological insights about viewing preferences
+- Format with HTML for beautiful presentation
+- Always explain the reasoning behind recommendations
+- Be amazingly insightful and professional
+
+INSTRUCTIONS:
+- Analyze user's emotional state and preferences
+- Provide personalized recommendations ONLY from available content
+- Explain psychological reasons for each recommendation
+- Use proper HTML formatting
+- Make responses engaging and surprising
+- Focus exclusively on movies and TV shows`;
+
     const response = await axios.post(
       'https://api.groq.com/openai/v1/chat/completions',
       {
@@ -37,37 +58,16 @@ module.exports = async (req, res) => {
         messages: [
           {
             role: "system",
-            content: `You are WAHAB VERSE AI, specialized in movies and TV shows ONLY. Never discuss non-entertainment topics.
-
-          CRITICAL INSTRUCTIONS:
-          - ONLY recommend movies/shows from the provided AVAILABLE CONTENT list
-          - Never suggest movies not in the available content list
-          - When recommending, use the exact movie titles from the list
-          - Format movie titles in **bold** markdown
-          - Include brief descriptions and ratings when available
-          - If asked about unavailable content, redirect to available alternatives
-
-          IMPORTANT FORMATTING RULES:
-          - Use **bold** markdown for movie titles
-          - Use bullet points (•) for lists
-          - Include year and genre information
-          - Use emojis to make responses engaging
-          - Keep recommendations concise but informative
-
-          Example format for recommendations:
-          **Movie Title** (Year) 🎬
-          Brief description with genre and rating info.
-
-          Always redirect to movies/TV if asked about other topics and remind users you only discuss content available on WAHAB VERSE platform.`
+            content: systemPrompt
           },
           { role: "user", content: message }
         ],
-        max_tokens: 500,
-        temperature: 0.7
+        max_tokens: 800,
+        temperature: 0.8
       },
       {
         headers: {
-          'Authorization': `Bearer ${groqApiKey}`,
+          'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
           'Content-Type': 'application/json'
         }
       }
