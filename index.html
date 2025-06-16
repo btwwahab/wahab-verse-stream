@@ -297,10 +297,15 @@
       </div>
     </div>
 
+    <!-- Make sure scripts are loaded in this order -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     <script src="voice.js"></script>
-    <script src="ai-assist.js"></script>
+    <!-- Load voice.js FIRST -->
     <script src="data.js"></script>
+    <!-- Then data.js -->
+    <script src="ai-assist.js"></script>
+    <!-- Then ai-assist.js -->
     <script src="main.js"></script>
+    <!-- Finally main.js -->
   </body>
 </html>

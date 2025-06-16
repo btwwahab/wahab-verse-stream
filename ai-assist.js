@@ -38,86 +38,6 @@ function setupAIChat() {
 
     waitForVoiceAssistant();
 
-    voiceAssistant = {
-        synthesis: window.speechSynthesis,
-        speaking: false,
-
-        speak: function (text) {
-            if (!this.synthesis) {
-                console.warn('Speech synthesis not supported');
-                return;
-            }
-
-            // Stop any current speech
-            this.synthesis.cancel();
-
-            // Clean HTML tags from text
-            const cleanText = text.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-
-            if (!cleanText) return;
-
-            const utterance = new SpeechSynthesisUtterance(cleanText);
-
-            // Configure voice settings
-            utterance.rate = 0.9;
-            utterance.pitch = 1.0;
-            utterance.volume = 0.8;
-
-            // Try to use a more natural voice
-            const voices = this.synthesis.getVoices();
-            const preferredVoice = voices.find(voice =>
-                voice.name.includes('Google') ||
-                voice.name.includes('Microsoft') ||
-                voice.lang.startsWith('en')
-            );
-
-            if (preferredVoice) {
-                utterance.voice = preferredVoice;
-            }
-
-            // Event handlers
-            utterance.onstart = () => {
-                this.speaking = true;
-                this.updateSpeakButtons(true);
-            };
-
-            utterance.onend = () => {
-                this.speaking = false;
-                this.updateSpeakButtons(false);
-            };
-
-            utterance.onerror = (event) => {
-                console.error('Speech synthesis error:', event.error);
-                this.speaking = false;
-                this.updateSpeakButtons(false);
-            };
-
-            this.synthesis.speak(utterance);
-        },
-
-        stop: function () {
-            if (this.synthesis) {
-                this.synthesis.cancel();
-                this.speaking = false;
-                this.updateSpeakButtons(false);
-            }
-        },
-
-        updateSpeakButtons: function (speaking) {
-            const speakButtons = document.querySelectorAll('.speak-response-btn');
-            speakButtons.forEach(btn => {
-                const icon = btn.querySelector('i');
-                if (speaking) {
-                    icon.className = 'fas fa-stop';
-                    btn.title = 'Stop speaking';
-                } else {
-                    icon.className = 'fas fa-volume-up';
-                    btn.title = 'Read response aloud';
-                }
-            });
-        }
-    };
-
     // Chat storage functions
     function saveChatToStorage() {
         try {
@@ -473,59 +393,59 @@ function setupAIChat() {
     }
 
     // Handle speak response button clicks
-    window.handleSpeakResponse = function (messageId) {
-        if (!window.voiceAssistant) {
-            console.warn('Voice assistant not initialized');
-            return;
-        }
+window.handleSpeakResponse = function (messageId) {
+    if (!window.voiceAssistant) {
+        console.warn('Voice assistant not initialized');
+        return;
+    }
+    
+    if (window.voiceAssistant.speaking) {
+        window.voiceAssistant.stop();
+        return;
+    }
 
-        if (window.voiceAssistant.speaking) {
-            window.voiceAssistant.stop();
-            return;
-        }
-
-        const messageElement = document.getElementById(messageId);
-        if (messageElement) {
-            const textContent = messageElement.textContent || messageElement.innerText;
-            window.voiceAssistant.speak(textContent);
-        }
-    };
+    const messageElement = document.getElementById(messageId);
+    if (messageElement) {
+        const textContent = messageElement.textContent || messageElement.innerText;
+        window.voiceAssistant.speak(textContent);
+    }
+};
 
     // Auto-speak AI responses (optional - can be toggled by user preference)
     let autoSpeakEnabled = false;
 
-    window.toggleAutoSpeak = function () {
-        autoSpeakEnabled = !autoSpeakEnabled;
-        const toggleBtn = document.getElementById('autoSpeakToggle');
+window.toggleAutoSpeak = function () {
+    autoSpeakEnabled = !autoSpeakEnabled;
+    const toggleBtn = document.getElementById('autoSpeakToggle');
 
-        console.log('Auto-speak toggled:', autoSpeakEnabled);
+    console.log('Auto-speak toggled:', autoSpeakEnabled);
 
-        if (toggleBtn) {
-            if (autoSpeakEnabled) {
-                toggleBtn.innerHTML = '<i class="fas fa-volume-up"></i> Auto-speak: ON';
-                toggleBtn.classList.add('active');
-                toggleBtn.style.background = 'var(--primary)';
-                toggleBtn.style.color = 'white';
-            } else {
-                toggleBtn.innerHTML = '<i class="fas fa-volume-mute"></i> Auto-speak: OFF';
-                toggleBtn.classList.remove('active');
-                toggleBtn.style.background = 'var(--bg-glass)';
-                toggleBtn.style.color = 'var(--text-primary)';
-            }
-        }
-
-        if (typeof showNotification === 'function') {
-            showNotification(
-                `Auto-speak ${autoSpeakEnabled ? 'enabled' : 'disabled'}`,
-                'info'
-            );
-        }
-
-        // Test voice if enabled - use window.voiceAssistant
-        if (autoSpeakEnabled && window.voiceAssistant) {
-            window.voiceAssistant.speak('Auto-speak is now enabled and ready to use.');
+    if (toggleBtn) {
+        if (autoSpeakEnabled) {
+            toggleBtn.innerHTML = '<i class="fas fa-volume-up"></i> Auto-speak: ON';
+            toggleBtn.classList.add('active');
+            toggleBtn.style.background = 'var(--primary)';
+            toggleBtn.style.color = 'white';
+        } else {
+            toggleBtn.innerHTML = '<i class="fas fa-volume-mute"></i> Auto-speak: OFF';
+            toggleBtn.classList.remove('active');
+            toggleBtn.style.background = 'var(--bg-glass)';
+            toggleBtn.style.color = 'var(--text-primary)';
         }
     }
+
+    if (typeof showNotification === 'function') {
+        showNotification(
+            `Auto-speak ${autoSpeakEnabled ? 'enabled' : 'disabled'}`,
+            'info'
+        );
+    }
+
+    // Test voice if enabled - use window.voiceAssistant
+    if (autoSpeakEnabled && window.voiceAssistant) {
+        window.voiceAssistant.speak('Auto-speak is now enabled and ready to use.');
+    }
+};
 
     // Revolutionary AI response system
     async function sendToGrok(message) {
@@ -556,9 +476,9 @@ function setupAIChat() {
             addMessage('ai', redirectResponse);
 
             // Handle auto-speak for redirect message
-            if (autoSpeakEnabled && voiceAssistant) {
+            if (autoSpeakEnabled && window.voiceAssistant) {
                 setTimeout(() => {
-                    voiceAssistant.speak(redirectResponse);
+                    window.voiceAssistant.speak(redirectResponse);
                 }, 500);
             }
             return;
@@ -659,9 +579,9 @@ INSTRUCTIONS:
                     smoothScrollToBottom();
 
                     // Auto-speak if enabled
-                    if (autoSpeakEnabled && voiceAssistant) {
+                    if (autoSpeakEnabled && window.voiceAssistant) {
                         console.log('Auto-speak is enabled, speaking response...');
-                        voiceAssistant.speak(aiReply);
+                        window.voiceAssistant.speak(aiReply);
                     }
                 }, 300);
             } else {
@@ -671,9 +591,9 @@ INSTRUCTIONS:
                 setTimeout(() => {
                     smoothScrollToBottom();
 
-                    if (autoSpeakEnabled && voiceAssistant) {
+                    if (autoSpeakEnabled && window.voiceAssistant) {
                         console.log('Auto-speak is enabled, speaking fallback response...');
-                        voiceAssistant.speak(intelligentResponse);
+                         window.voiceAssistant.speak(intelligentResponse);
                     }
                 }, 300);
             }
@@ -1152,7 +1072,7 @@ function handleAIResponse(aiReply) {
     if (autoSpeakEnabled && voiceAssistant) {
         // Add a small delay to ensure the message is rendered
         setTimeout(() => {
-            voiceAssistant.speak(aiReply);
+            window.voiceAssistant.speak(aiReply);
         }, 500);
     }
 }

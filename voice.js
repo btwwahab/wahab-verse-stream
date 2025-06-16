@@ -3,12 +3,80 @@ class VoiceAssistant {
         this.recognition = null;
         this.synthesis = window.speechSynthesis;
         this.isListening = false;
+        this.speaking = false; // Add this property
         this.isSupported = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
         this.voices = [];
         this.currentVoice = null;
         
         this.initializeVoiceAssistant();
         this.loadVoices();
+    }
+
+    // Add the speak method that ai-assist.js expects
+    speak(text, callback = null) {
+        if (!text) return;
+
+        // Stop any ongoing speech
+        this.synthesis.cancel();
+
+        // Clean text for better speech
+        const cleanText = this.cleanTextForSpeech(text);
+        
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+        
+        // Configure voice
+        if (this.currentVoice) {
+            utterance.voice = this.currentVoice;
+        }
+        
+        utterance.rate = 0.9;
+        utterance.pitch = 1.1;
+        utterance.volume = 0.8;
+
+        // Event listeners
+        utterance.onstart = () => {
+            this.speaking = true;
+            this.updateSpeakButtons(true);
+        };
+
+        utterance.onend = () => {
+            this.speaking = false;
+            this.updateSpeakButtons(false); 
+            if (callback) callback();
+        };
+
+        utterance.onerror = (event) => {
+            console.error('Speech synthesis error:', event);
+            this.speaking = false;
+            this.updateSpeakButtons(false);
+            if (typeof showNotification === 'function') {
+                showNotification('Error speaking response', 'warning');
+            }
+        };
+
+        this.synthesis.speak(utterance);
+    }
+
+    // Add the stop method that ai-assist.js expects
+    stop() {
+        this.synthesis.cancel();
+        this.speaking = false;
+        this.updateSpeakButtons(false);
+    }
+
+    // Add the updateSpeakButtons method that ai-assist.js expects
+    updateSpeakButtons(speaking) {
+        const speakButtons = document.querySelectorAll('.speak-response-btn');
+        speakButtons.forEach(btn => {
+            const icon = btn.querySelector('i');
+            if (speaking) {
+                icon.className = 'fas fa-stop';
+                btn.title = 'Stop speaking';
+            } else {
+                icon.className = 'fas fa-volume-up';
+                btn.title = 'Read response aloud';
+            }
+        });
     }
 
     initializeVoiceAssistant() {
@@ -170,7 +238,7 @@ class VoiceAssistant {
         this.synthesis.speak(utterance);
     }
 
-    cleanTextForSpeech(text) {
+cleanTextForSpeech(text) {
         // Remove HTML tags
         let cleanText = text.replace(/<[^>]*>/g, ' ');
         
@@ -196,7 +264,8 @@ class VoiceAssistant {
 
     stopSpeaking() {
         this.synthesis.cancel();
-        this.updateSpeakButton(false);
+        this.speaking = false;
+        this.updateSpeakButtons(false);
     }
 
     updateVoiceButton(isListening) {
@@ -251,23 +320,34 @@ let voiceAssistant = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     voiceAssistant = new VoiceAssistant();
+    
+    // Make it available globally
+    window.voiceAssistant = voiceAssistant;
+    
+    console.log('VoiceAssistant initialized and exposed globally');
 });
 
-// Expose functions globally
+// Update the global functions
 window.startVoiceInput = function() {
-    if (voiceAssistant) {
-        voiceAssistant.startListening();
+    if (window.voiceAssistant) {
+        window.voiceAssistant.startListening();
+    } else {
+        console.warn('VoiceAssistant not initialized');
     }
 };
 
 window.speakResponse = function(text) {
-    if (voiceAssistant) {
-        voiceAssistant.speak(text);
+    if (window.voiceAssistant) {
+        window.voiceAssistant.speak(text);
+    } else {
+        console.warn('VoiceAssistant not initialized');
     }
 };
 
 window.stopSpeaking = function() {
-    if (voiceAssistant) {
-        voiceAssistant.stopSpeaking();
+    if (window.voiceAssistant) {
+        window.voiceAssistant.stopSpeaking();
+    } else {
+        console.warn('VoiceAssistant not initialized');
     }
 };
