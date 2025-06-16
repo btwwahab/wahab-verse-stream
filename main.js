@@ -255,7 +255,7 @@ async function showMovieInfo(movie, directPlay = false) {
 
   // Store movie data for play button
   window.currentMovie = { movie, trailer };
-  
+
   // Auto-play if requested from chat
   if (directPlay && trailer) {
     setTimeout(() => {
@@ -264,167 +264,15 @@ async function showMovieInfo(movie, directPlay = false) {
   }
 }
 
-// New function to handle full-screen preview
-function playMoviePreview() {
-  const { movie, trailer } = window.currentMovie || {};
-  
-  if (!movie) {
-    showNotification('Movie data not available', 'warning');
-    return;
-  }
-
-  // Close the current modal first
-  const currentModal = bootstrap.Modal.getInstance(document.getElementById('movieModal'));
-  if (currentModal) {
-    currentModal.hide();
-  }
-
-  // Create full-screen preview
-  createFullScreenPreview(movie, trailer);
-}
-
-function createFullScreenPreview(movie, trailer) {
-  // Remove existing preview if any
-  const existingPreview = document.getElementById('fullScreenPreview');
-  if (existingPreview) {
-    existingPreview.remove();
-  }
-
-  // Create full-screen container
-  const fullScreenDiv = document.createElement('div');
-  fullScreenDiv.id = 'fullScreenPreview';
-  
-  // Create content wrapper
-  const contentWrapper = document.createElement('div');
-  contentWrapper.className = 'preview-wrapper';
-
-  // Create header with movie info and controls
-  const header = document.createElement('div');
-  header.className = 'preview-header';
-
-  header.innerHTML = `
-    <div class="preview-title-area">
-      <h2 class="preview-title">
-        <i class="fas fa-play-circle me-2"></i>${movie.title}
-      </h2>
-      <p class="preview-subtitle">
-        ${movie.genre} • ${movie.year} • ${generateStars(movie.rating)} ${movie.rating.toFixed(1)}/5
-      </p>
-    </div>
-    <div class="preview-controls">
-      <button onclick="toggleFullscreen()" class="preview-btn fullscreen-btn">
-        <i class="fas fa-expand"></i> <span class="btn-text">Fullscreen</span>
-      </button>
-      <button onclick="closeFullScreenPreview()" class="preview-btn close-btn">
-        <i class="fas fa-times"></i> <span class="btn-text">Exit</span>
-      </button>
-    </div>
-  `;
-
-  // Create video container
-  const videoContainer = document.createElement('div');
-  videoContainer.className = 'preview-container';
-
-  if (trailer) {
-    // Show trailer in full screen with additional parameters for mobile
-    videoContainer.innerHTML = `
-      <iframe 
-        src="https://www.youtube.com/embed/${trailer.key}?autoplay=1&controls=1&modestbranding=1&rel=0&playsinline=1"
-        frameborder="0" 
-        allowfullscreen
-        allow="autoplay; encrypted-media"
-        class="preview-video">
-      </iframe>
-    `;
-  } else {
-    // Show movie poster with play simulation
-    videoContainer.innerHTML = `
-      <div class="preview-poster-container">
-        <div class="preview-poster-overlay">
-          <i class="fas fa-play-circle preview-play-icon"></i>
-          <h3 class="preview-mode-title">Preview Mode</h3>
-          <p class="preview-description">
-            ${movie.overview}
-          </p>
-          <button onclick="simulatePlayback(event)" class="preview-play-btn">
-            <i class="fas fa-play"></i> Start Watching
-          </button>
-        </div>
-      </div>
-    `;
-    
-    // Set background image for poster container
-    const posterContainer = videoContainer.querySelector('.preview-poster-container');
-    posterContainer.style.backgroundImage = `url('${movie.backdrop || movie.poster}')`;
-  }
-
-  // Create bottom overlay with additional info (only for non-trailer view)
-  if (!trailer) {
-    const bottomOverlay = document.createElement('div');
-    bottomOverlay.className = 'preview-bottom-overlay';
-    bottomOverlay.innerHTML = `
-      <div class="preview-info">
-        <p class="preview-overview">${movie.overview}</p>
-      </div>
-    `;
-    contentWrapper.appendChild(bottomOverlay);
-  }
-
-  // Assemble the full-screen preview
-  contentWrapper.appendChild(header);
-  contentWrapper.appendChild(videoContainer);
-  fullScreenDiv.appendChild(contentWrapper);
-
-  // Add to body
-  document.body.appendChild(fullScreenDiv);
-
-  // Add keyboard controls
-  document.addEventListener('keydown', handleFullScreenKeydown);
-
-  // Show notification
-  showNotification('🎬 Full-screen preview activated! Press ESC to exit.', 'success');
-}
-
-function handleFullScreenKeydown(e) {
-  if (e.key === 'Escape') {
-    closeFullScreenPreview();
-  } else if (e.key === 'f' || e.key === 'F') {
-    toggleFullscreen();
-  }
-}
-
-function closeFullScreenPreview() {
-  const preview = document.getElementById('fullScreenPreview');
-  if (preview) {
-    preview.style.animation = 'fadeOut 0.3s ease-out';
-    setTimeout(() => preview.remove(), 300);
-  }
-  
-  // Remove keyboard listener
-  document.removeEventListener('keydown', handleFullScreenKeydown);
-  
-  showNotification('Preview closed', 'info');
-}
-
-function toggleFullscreen() {
-  if (!document.fullscreenElement) {
-    document.documentElement.requestFullscreen().catch(err => {
-      showNotification('Fullscreen not supported', 'warning');
-    });
-  } else {
-    document.exitFullscreen();
-  }
-}
-
 // Update simulatePlayback to use event parameter
 function simulatePlayback(event) {
   showNotification('🎬 Starting playback simulation...', 'info');
-  
+
   // Add playback simulation here
   const playButton = event.target.closest('.preview-play-btn');
   playButton.innerHTML = '<i class="fas fa-pause"></i> Playing...';
   playButton.style.background = 'var(--secondary)';
-  
+
   setTimeout(() => {
     showNotification('📺 This is a preview. Full content requires subscription.', 'warning');
   }, 3000);
@@ -1040,14 +888,14 @@ function displaySearchResults(results, query) {
 function fixModalAccessibility() {
   // Fix for aria-hidden issues with modals
   const modals = document.querySelectorAll('.modal');
-  
+
   modals.forEach(modal => {
-    modal.addEventListener('shown.bs.modal', function() {
+    modal.addEventListener('shown.bs.modal', function () {
       // Remove aria-hidden when modal is shown
       this.removeAttribute('aria-hidden');
     });
-    
-    modal.addEventListener('hidden.bs.modal', function() {
+
+    modal.addEventListener('hidden.bs.modal', function () {
       // Only add aria-hidden when modal is hidden
       this.setAttribute('aria-hidden', 'true');
     });
@@ -1057,7 +905,7 @@ function fixModalAccessibility() {
 function enhanceLogoAnimation() {
   const logo = document.querySelector('.custom-logo');
   if (!logo) return;
-  
+
   logo.addEventListener('mouseenter', () => {
     const logoCircle = document.querySelector('.logo-circle');
     if (logoCircle) {
@@ -1065,7 +913,7 @@ function enhanceLogoAnimation() {
       logoCircle.style.boxShadow = '0 0 20px var(--primary), inset 0 0 15px var(--text-primary)';
     }
   });
-  
+
   logo.addEventListener('mouseleave', () => {
     const logoCircle = document.querySelector('.logo-circle');
     if (logoCircle) {
@@ -1083,7 +931,7 @@ function initializeNeuroLogo() {
   const particles = [];
   const nodeCount = 8;
   const connectionProbability = 0.6;
-  
+
   // Create neural network nodes
   for (let i = 0; i < nodeCount; i++) {
     const angle = (i / nodeCount) * Math.PI * 2;
@@ -1098,7 +946,7 @@ function initializeNeuroLogo() {
       connections: []
     });
   }
-  
+
   // Establish connections between nodes
   for (let i = 0; i < particles.length; i++) {
     for (let j = i + 1; j < particles.length; j++) {
@@ -1107,66 +955,66 @@ function initializeNeuroLogo() {
       }
     }
   }
-  
+
   function drawNeural() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
+
     // Draw connections
     ctx.lineWidth = 0.5;
-    
+
     for (let i = 0; i < particles.length; i++) {
       const p = particles[i];
-      
+
       for (const connIndex of p.connections) {
         const conn = particles[connIndex];
         const gradient = ctx.createLinearGradient(p.x, p.y, conn.x, conn.y);
         gradient.addColorStop(0, 'rgba(255, 0, 0, 0.3)');
         gradient.addColorStop(1, 'rgba(255, 0, 0, 0.1)');
-        
+
         ctx.beginPath();
         ctx.strokeStyle = gradient;
         ctx.moveTo(p.x, p.y);
         ctx.lineTo(conn.x, conn.y);
         ctx.stroke();
-        
+
         // Animated pulse along connections
         const pulsePosition = (Date.now() % 3000) / 3000;
         const pulseX = p.x + (conn.x - p.x) * pulsePosition;
         const pulseY = p.y + (conn.y - p.y) * pulsePosition;
-        
+
         ctx.beginPath();
         ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
         ctx.arc(pulseX, pulseY, 1, 0, Math.PI * 2);
         ctx.fill();
       }
     }
-    
+
     // Draw particles
     for (const p of particles) {
       // Update position with gentle circular motion
       p.angle += p.speed;
       p.x = canvas.width / 2 + Math.cos(p.angle) * p.radius;
       p.y = canvas.height / 2 + Math.sin(p.angle) * p.radius;
-      
+
       // Draw node
       const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size * 2);
       gradient.addColorStop(0, 'rgba(255, 0, 0, 0.8)');
       gradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
-      
+
       ctx.beginPath();
       ctx.fillStyle = gradient;
       ctx.arc(p.x, p.y, p.size * 2, 0, Math.PI * 2);
       ctx.fill();
-      
+
       ctx.beginPath();
       ctx.fillStyle = '#ffffff';
       ctx.arc(p.x, p.y, p.size * 0.5, 0, Math.PI * 2);
       ctx.fill();
     }
-    
+
     requestAnimationFrame(drawNeural);
   }
-  
+
   // Interactive effects
   canvas.closest('.neural-container').addEventListener('mouseenter', () => {
     particles.forEach(p => {
@@ -1174,13 +1022,13 @@ function initializeNeuroLogo() {
       p.speed *= 2;
     });
   });
-  
+
   canvas.closest('.neural-container').addEventListener('mouseleave', () => {
     particles.forEach(p => {
       p.speed = p.originalSpeed || (0.02 + Math.random() * 0.03);
     });
   });
-  
+
   drawNeural();
 }
 
@@ -1192,7 +1040,7 @@ function initializeNeuroFlix() {
   setupSearch();
   fixModalAccessibility(); // Add this line
   enhanceLogoAnimation();
-   initializeNeuroLogo(); // Add this line
+  initializeNeuroLogo(); // Add this line
   loadContentLibrary().then(() => {
     populateCategoryPills();
     createDynamicSections();
