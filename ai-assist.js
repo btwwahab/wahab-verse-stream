@@ -375,91 +375,107 @@ function setupAIChat() {
         const messageId = 'msg-' + Date.now();
 
         messageDiv.innerHTML = `
-            <div class="message-header">
-                <div class="sender-info">
-                    <i class="fas fa-${isUser ? 'user' : 'brain'} me-2"></i>
-                    <span class="sender-name">${isUser ? 'You' : 'WAHAB VERSE AI'}</span>
-                    ${!isUser ? '<span class="ai-badge">Neural v2.0</span>' : ''}
-                </div>
-                <div class="message-actions">
-                    <div class="message-time">${new Date().toLocaleTimeString()}</div>
-                    ${!isUser ? `
-                        <button class="speak-response-btn" 
-                                onclick="handleSpeakResponse('${messageId}')" 
-                                title="Read response aloud">
-                            <i class="fas fa-volume-up"></i>
-                        </button>
-                    ` : ''}
-                </div>
+        <div class="message-header">
+            <div class="sender-info">
+                <i class="fas fa-${isUser ? 'user' : 'brain'} me-2"></i>
+                <span class="sender-name">${isUser ? 'You' : 'WAHAB VERSE AI'}</span>
+                ${!isUser ? '<span class="ai-badge">Neural v2.0</span>' : ''}
             </div>
-            <div class="message-content" id="${messageId}">
-                ${message}
+            <div class="message-actions">
+                <div class="message-time">${new Date().toLocaleTimeString()}</div>
+                ${!isUser ? `
+                    <button class="speak-response-btn" 
+                            onclick="handleSpeakResponse('${messageId}')" 
+                            title="Read response aloud">
+                        <i class="fas fa-volume-up"></i>
+                    </button>
+                ` : ''}
             </div>
-        `;
+        </div>
+        <div class="message-content" id="${messageId}">
+            ${message}
+        </div>
+    `;
 
         aiChatMessages.appendChild(messageDiv);
 
-        // Enhanced auto-scroll functionality
-        smoothScrollToBottom();
+        // Force multiple scroll attempts
+        setTimeout(() => smoothScrollToBottom(), 100);
+        setTimeout(() => smoothScrollToBottom(), 300);
+        setTimeout(() => smoothScrollToBottom(), 500);
 
-        // Additional scroll after a brief delay to handle content loading
-        setTimeout(() => {
-            smoothScrollToBottom();
-        }, 100);
-
-        // Save chat to storage after adding message
+        // Save chat to storage
         setTimeout(() => {
             saveChatToStorage();
         }, 200);
     }
 
     function smoothScrollToBottom() {
-        if (!aiChatMessages) return;
+        const chatContainer = document.getElementById('aiChatMessages');
+        if (!chatContainer) {
+            console.warn('Chat messages container not found');
+            return;
+        }
 
-        aiChatMessages.scrollTo({
-            top: aiChatMessages.scrollHeight,
-            behavior: 'smooth'
+        // Force scroll to bottom with multiple approaches
+        requestAnimationFrame(() => {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            // Also use smooth scroll as backup
+            chatContainer.scrollTo({
+                top: chatContainer.scrollHeight,
+                behavior: 'smooth'
+            });
         });
     }
 
     // Handle speak response button clicks
-window.handleSpeakResponse = function(messageId) {
-    if (voiceAssistant.speaking) {
-        voiceAssistant.stop();
-        return;
-    }
-    
-    const messageElement = document.getElementById(messageId);
-    if (messageElement) {
-        const textContent = messageElement.textContent || messageElement.innerText;
-        voiceAssistant.speak(textContent);
-    }
-};
+    window.handleSpeakResponse = function (messageId) {
+        if (voiceAssistant.speaking) {
+            voiceAssistant.stop();
+            return;
+        }
+
+        const messageElement = document.getElementById(messageId);
+        if (messageElement) {
+            const textContent = messageElement.textContent || messageElement.innerText;
+            voiceAssistant.speak(textContent);
+        }
+    };
 
     // Auto-speak AI responses (optional - can be toggled by user preference)
     let autoSpeakEnabled = false;
 
-window.toggleAutoSpeak = function() {
-    autoSpeakEnabled = !autoSpeakEnabled;
-    const toggleBtn = document.getElementById('autoSpeakToggle');
-    
-    if (toggleBtn) {
-        if (autoSpeakEnabled) {
-            toggleBtn.innerHTML = '<i class="fas fa-volume-up"></i> Auto-speak: ON';
-            toggleBtn.classList.add('active');
-            toggleBtn.style.background = 'var(--primary)';
-        } else {
-            toggleBtn.innerHTML = '<i class="fas fa-volume-mute"></i> Auto-speak: OFF';
-            toggleBtn.classList.remove('active');
-            toggleBtn.style.background = 'var(--bg-glass)';
+    window.toggleAutoSpeak = function () {
+        autoSpeakEnabled = !autoSpeakEnabled;
+        const toggleBtn = document.getElementById('autoSpeakToggle');
+
+        console.log('Auto-speak toggled:', autoSpeakEnabled);
+
+        if (toggleBtn) {
+            if (autoSpeakEnabled) {
+                toggleBtn.innerHTML = '<i class="fas fa-volume-up"></i> Auto-speak: ON';
+                toggleBtn.classList.add('active');
+                toggleBtn.style.background = 'var(--primary)';
+                toggleBtn.style.color = 'white';
+            } else {
+                toggleBtn.innerHTML = '<i class="fas fa-volume-mute"></i> Auto-speak: OFF';
+                toggleBtn.classList.remove('active');
+                toggleBtn.style.background = 'var(--bg-glass)';
+                toggleBtn.style.color = 'var(--text-primary)';
+            }
         }
-    }
-    
-    showNotification(
-        `Auto-speak ${autoSpeakEnabled ? 'enabled' : 'disabled'}`,
-        'info'
-    );
-};
+
+        showNotification(
+            `Auto-speak ${autoSpeakEnabled ? 'enabled' : 'disabled'}`,
+            'info'
+        );
+
+        // Test voice if enabled
+        if (autoSpeakEnabled && voiceAssistant) {
+            voiceAssistant.speak('Auto-speak is now enabled and ready to use.');
+        }
+    };
 
     // Revolutionary AI response system
     async function sendToGrok(message) {
@@ -467,22 +483,30 @@ window.toggleAutoSpeak = function() {
 
         if (!isMovieRelated(message)) {
             addMessage('user', message);
-            addMessage('ai', `
-            <div class="redirect-message">
-                🎭 <strong>Entertainment Focus Mode Active</strong><br><br>
-                I'm WAHAB VERSE AI, your specialized entertainment companion. I excel at:
-                <br><br>
-                <div class="expertise-list">
-                    🎬 <strong>Movie Recommendations</strong> - Personalized to your taste<br>
-                    📺 <strong>Series Suggestions</strong> - Perfect binge-watching material<br>
-                    🎭 <strong>Mood-Based Curation</strong> - Content that matches your feelings<br>
-                    🔍 <strong>Genre Exploration</strong> - Discover new favorites<br>
-                    ⭐ <strong>Quality Analysis</strong> - Only the best recommendations
-                </div>
-                <br>
-                What kind of entertainment experience can I craft for you today? 🍿
+            const redirectResponse = `
+        <div class="redirect-message">
+            🎭 <strong>Entertainment Focus Mode Active</strong><br><br>
+            I'm WAHAB VERSE AI, your specialized entertainment companion. I excel at:
+            <br><br>
+            <div class="expertise-list">
+                🎬 <strong>Movie Recommendations</strong> - Personalized to your taste<br>
+                📺 <strong>Series Suggestions</strong> - Perfect binge-watching material<br>
+                🎭 <strong>Mood-Based Curation</strong> - Content that matches your feelings<br>
+                🔍 <strong>Genre Exploration</strong> - Discover new favorites<br>
+                ⭐ <strong>Quality Analysis</strong> - Only the best recommendations
             </div>
-        `);
+            <br>
+            What kind of entertainment experience can I craft for you today? 🍿
+        </div>
+        `;
+            addMessage('ai', redirectResponse);
+
+            // Handle auto-speak for redirect message
+            if (autoSpeakEnabled && voiceAssistant) {
+                setTimeout(() => {
+                    voiceAssistant.speak(redirectResponse);
+                }, 500);
+            }
             return;
         }
 
@@ -491,7 +515,7 @@ window.toggleAutoSpeak = function() {
         const preferences = analyzeUserPreferences(message);
         AI_PERSONALITY.context.push({ type: 'message', content: message, preferences, timestamp: Date.now() });
 
-        // Show sophisticated typing indicator with auto-scroll
+        // Show typing indicator
         const typingId = 'ai-typing-' + Date.now();
         const typingDiv = document.createElement('div');
         typingDiv.id = typingId;
@@ -511,8 +535,6 @@ window.toggleAutoSpeak = function() {
         </div>
     `;
         aiChatMessages.appendChild(typingDiv);
-
-        // Scroll to show typing indicator
         smoothScrollToBottom();
 
         try {
@@ -567,6 +589,7 @@ INSTRUCTIONS:
 
             const data = await response.json();
 
+            // Remove typing indicator
             const typingElement = document.getElementById(typingId);
             if (typingElement) typingElement.remove();
 
@@ -575,25 +598,28 @@ INSTRUCTIONS:
                 aiReply = formatProfessionalResponse(aiReply, availableMovies);
                 addMessage('ai', aiReply);
 
-                // Enhanced auto-scroll after AI response
+                // Enhanced auto-scroll and auto-speak
                 setTimeout(() => {
                     smoothScrollToBottom();
+
                     // Auto-speak if enabled
                     if (autoSpeakEnabled && voiceAssistant) {
+                        console.log('Auto-speak is enabled, speaking response...');
                         voiceAssistant.speak(aiReply);
                     }
-                }, 150);
+                }, 300);
             } else {
                 const intelligentResponse = generateIntelligentFallback(message, preferences, availableMovies);
                 addMessage('ai', intelligentResponse);
 
-                // Auto-scroll for fallback response
                 setTimeout(() => {
                     smoothScrollToBottom();
+
                     if (autoSpeakEnabled && voiceAssistant) {
+                        console.log('Auto-speak is enabled, speaking fallback response...');
                         voiceAssistant.speak(intelligentResponse);
                     }
-                }, 150);
+                }, 300);
             }
 
         } catch (error) {
@@ -605,13 +631,16 @@ INSTRUCTIONS:
             const localResponse = generateIntelligentFallback(message, preferences, availableMovies);
             addMessage('ai', localResponse);
 
-            // Auto-scroll for error response
             setTimeout(() => {
                 smoothScrollToBottom();
-            }, 150);
+
+                if (autoSpeakEnabled && voiceAssistant) {
+                    console.log('Auto-speak is enabled, speaking error response...');
+                    voiceAssistant.speak(localResponse);
+                }
+            }, 300);
         }
     }
-
     // Revolutionary content analysis system
     function analyzeUserPreferences(message) {
         const preferences = {
@@ -1060,7 +1089,7 @@ function startExperience() {
 
 function handleAIResponse(aiReply) {
     addMessage('ai', aiReply);
-    
+
     // Auto-speak if enabled
     if (autoSpeakEnabled && voiceAssistant) {
         // Add a small delay to ensure the message is rendered
