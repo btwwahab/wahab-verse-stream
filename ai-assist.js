@@ -1,13 +1,20 @@
 // === ENHANCED AI CHAT ASSISTANT - PROFESSIONAL EDITION ===
 
+let aiChatMessages = null;
+let AI_PERSONALITY = null;
+let autoSpeakEnabled = false;
+let voiceAssistant = null;
+
 function setupAIChat() {
     const aiToggle = document.getElementById('aiAssistantToggle');
     const aiChatSend = document.getElementById('aiChatSend');
     const aiChatInput = document.getElementById('aiChatInput');
-    const aiChatMessages = document.getElementById('aiChatMessages');
+    
+    // Initialize global variables
+    aiChatMessages = document.getElementById('aiChatMessages');
 
     // Enhanced AI personality and intelligence
-    const AI_PERSONALITY = {
+    AI_PERSONALITY = {
         name: "WAHAB VERSE AI",
         version: "Neural v2.0",
         specialties: ["mood analysis", "content curation", "personality profiling", "trend analysis"],
@@ -15,7 +22,7 @@ function setupAIChat() {
         context: [],
     };
 
-    const voiceAssistant = {
+    voiceAssistant = {
         synthesis: window.speechSynthesis,
         speaking: false,
 
@@ -96,70 +103,72 @@ function setupAIChat() {
     };
 
     // Chat storage functions
-    function saveChatToStorage() {
-        try {
-            const chatData = {
-                messages: getChatMessagesData(),
-                personality: {
-                    memory: Object.fromEntries(AI_PERSONALITY.memory),
-                    context: AI_PERSONALITY.context
-                },
-                timestamp: Date.now()
-            };
-            localStorage.setItem('wahab_verse_chat', JSON.stringify(chatData));
-        } catch (error) {
-            console.error('Error saving chat to storage:', error);
-        }
+function saveChatToStorage() {
+    try {
+        if (!AI_PERSONALITY || !aiChatMessages) return;
+        
+        const chatData = {
+            messages: getChatMessagesData(),
+            personality: {
+                memory: Object.fromEntries(AI_PERSONALITY.memory),
+                context: AI_PERSONALITY.context
+            },
+            timestamp: Date.now()
+        };
+        localStorage.setItem('wahab_verse_chat', JSON.stringify(chatData));
+    } catch (error) {
+        console.error('Error saving chat to storage:', error);
     }
+}
 
-    function loadChatFromStorage() {
-        try {
-            const savedChat = localStorage.getItem('wahab_verse_chat');
-            if (savedChat) {
-                const chatData = JSON.parse(savedChat);
+function loadChatFromStorage() {
+    try {
+        const savedChat = localStorage.getItem('wahab_verse_chat');
+        if (savedChat) {
+            const chatData = JSON.parse(savedChat);
 
-                // Restore AI personality data
-                if (chatData.personality) {
-                    if (chatData.personality.memory) {
-                        AI_PERSONALITY.memory = new Map(Object.entries(chatData.personality.memory));
-                    }
-                    if (chatData.personality.context) {
-                        AI_PERSONALITY.context = chatData.personality.context;
-                    }
+            // Restore AI personality data
+            if (chatData.personality && AI_PERSONALITY) {
+                if (chatData.personality.memory) {
+                    AI_PERSONALITY.memory = new Map(Object.entries(chatData.personality.memory));
                 }
-
-                return chatData.messages || [];
+                if (chatData.personality.context) {
+                    AI_PERSONALITY.context = chatData.personality.context;
+                }
             }
-        } catch (error) {
-            console.error('Error loading chat from storage:', error);
+
+            return chatData.messages || [];
         }
-        return [];
+    } catch (error) {
+        console.error('Error loading chat from storage:', error);
     }
+    return [];
+}
 
-    function getChatMessagesData() {
-        if (!aiChatMessages) return [];
+function getChatMessagesData() {
+    if (!aiChatMessages) return [];
 
-        const messages = [];
-        const messageElements = aiChatMessages.querySelectorAll('.chat-message');
+    const messages = [];
+    const messageElements = aiChatMessages.querySelectorAll('.chat-message');
 
-        messageElements.forEach((element, index) => {
-            const isUser = element.classList.contains('user-message');
-            const messageContent = element.querySelector('.message-content');
-            const messageTime = element.querySelector('.message-time');
+    messageElements.forEach((element, index) => {
+        const isUser = element.classList.contains('user-message');
+        const messageContent = element.querySelector('.message-content');
+        const messageTime = element.querySelector('.message-time');
 
-            if (messageContent) {
-                messages.push({
-                    id: index,
-                    sender: isUser ? 'user' : 'ai',
-                    content: messageContent.innerHTML,
-                    timestamp: messageTime ? messageTime.textContent : new Date().toLocaleTimeString(),
-                    isWelcome: element.querySelector('.ai-welcome-message') !== null
-                });
-            }
-        });
+        if (messageContent) {
+            messages.push({
+                id: index,
+                sender: isUser ? 'user' : 'ai',
+                content: messageContent.innerHTML,
+                timestamp: messageTime ? messageTime.textContent : new Date().toLocaleTimeString(),
+                isWelcome: element.querySelector('.ai-welcome-message') !== null
+            });
+        }
+    });
 
-        return messages;
-    }
+    return messages;
+}
 
     function restoreChatMessages(messages) {
         if (!aiChatMessages || messages.length === 0) return;
@@ -316,7 +325,7 @@ function setupAIChat() {
     };
 
     // Open AI Chat Modal with enhanced welcome
-    if (aiToggle) {
+ if (aiToggle) {
         aiToggle.addEventListener('click', () => {
             showNotification('🧠 Activating Neural Intelligence System...', 'info');
 
@@ -366,15 +375,18 @@ function setupAIChat() {
     }
 
     function addMessage(sender, message) {
-        if (!aiChatMessages) return;
+    if (!aiChatMessages) {
+        console.warn('aiChatMessages not found');
+        return;
+    }
 
-        const isUser = sender === 'user';
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `chat-message ${isUser ? 'user-message' : 'ai-message'}`;
+    const isUser = sender === 'user';
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `chat-message ${isUser ? 'user-message' : 'ai-message'}`;
 
-        const messageId = 'msg-' + Date.now();
+    const messageId = 'msg-' + Date.now();
 
-        messageDiv.innerHTML = `
+    messageDiv.innerHTML = `
         <div class="message-header">
             <div class="sender-info">
                 <i class="fas fa-${isUser ? 'user' : 'brain'} me-2"></i>
@@ -397,93 +409,118 @@ function setupAIChat() {
         </div>
     `;
 
-        aiChatMessages.appendChild(messageDiv);
+    aiChatMessages.appendChild(messageDiv);
 
-        // Force multiple scroll attempts
-        setTimeout(() => smoothScrollToBottom(), 100);
-        setTimeout(() => smoothScrollToBottom(), 300);
-        setTimeout(() => smoothScrollToBottom(), 500);
+    // Force scroll to bottom immediately and with delay
+    requestAnimationFrame(() => {
+        smoothScrollToBottom();
+    });
+    
+    setTimeout(() => {
+        smoothScrollToBottom();
+    }, 100);
+    
+    setTimeout(() => {
+        smoothScrollToBottom();
+    }, 300);
 
-        // Save chat to storage
-        setTimeout(() => {
-            saveChatToStorage();
-        }, 200);
+    // Save chat to storage
+    setTimeout(() => {
+        saveChatToStorage();
+    }, 200);
+}
+
+function smoothScrollToBottom() {
+    if (!aiChatMessages) {
+        console.warn('Chat messages container not found for scrolling');
+        return;
     }
 
-    function smoothScrollToBottom() {
-        const chatContainer = document.getElementById('aiChatMessages');
-        if (!chatContainer) {
-            console.warn('Chat messages container not found');
-            return;
-        }
-
-        // Force scroll to bottom with multiple approaches
-        requestAnimationFrame(() => {
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-
-            // Also use smooth scroll as backup
-            chatContainer.scrollTo({
-                top: chatContainer.scrollHeight,
-                behavior: 'smooth'
-            });
+    try {
+        // Multiple scroll approaches for better compatibility
+        aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
+        
+        // Also try smooth scroll
+        aiChatMessages.scrollTo({
+            top: aiChatMessages.scrollHeight,
+            behavior: 'smooth'
         });
+        
+        // Force another scroll after a brief delay
+        setTimeout(() => {
+            aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
+        }, 50);
+        
+    } catch (error) {
+        console.error('Error scrolling chat:', error);
     }
+}
 
     // Handle speak response button clicks
-    window.handleSpeakResponse = function (messageId) {
-        if (voiceAssistant.speaking) {
-            voiceAssistant.stop();
-            return;
-        }
+window.handleSpeakResponse = function (messageId) {
+    if (!voiceAssistant) {
+        console.warn('Voice assistant not initialized');
+        return;
+    }
+    
+    if (voiceAssistant.speaking) {
+        voiceAssistant.stop();
+        return;
+    }
 
-        const messageElement = document.getElementById(messageId);
-        if (messageElement) {
-            const textContent = messageElement.textContent || messageElement.innerText;
-            voiceAssistant.speak(textContent);
-        }
-    };
+    const messageElement = document.getElementById(messageId);
+    if (messageElement) {
+        const textContent = messageElement.textContent || messageElement.innerText;
+        voiceAssistant.speak(textContent);
+    }
+};
 
     // Auto-speak AI responses (optional - can be toggled by user preference)
     let autoSpeakEnabled = false;
 
-    window.toggleAutoSpeak = function () {
-        autoSpeakEnabled = !autoSpeakEnabled;
-        const toggleBtn = document.getElementById('autoSpeakToggle');
+window.toggleAutoSpeak = function () {
+    autoSpeakEnabled = !autoSpeakEnabled;
+    const toggleBtn = document.getElementById('autoSpeakToggle');
 
-        console.log('Auto-speak toggled:', autoSpeakEnabled);
+    console.log('Auto-speak toggled:', autoSpeakEnabled);
 
-        if (toggleBtn) {
-            if (autoSpeakEnabled) {
-                toggleBtn.innerHTML = '<i class="fas fa-volume-up"></i> Auto-speak: ON';
-                toggleBtn.classList.add('active');
-                toggleBtn.style.background = 'var(--primary)';
-                toggleBtn.style.color = 'white';
-            } else {
-                toggleBtn.innerHTML = '<i class="fas fa-volume-mute"></i> Auto-speak: OFF';
-                toggleBtn.classList.remove('active');
-                toggleBtn.style.background = 'var(--bg-glass)';
-                toggleBtn.style.color = 'var(--text-primary)';
-            }
+    if (toggleBtn) {
+        if (autoSpeakEnabled) {
+            toggleBtn.innerHTML = '<i class="fas fa-volume-up"></i> Auto-speak: ON';
+            toggleBtn.classList.add('active');
+            toggleBtn.style.background = 'var(--primary)';
+            toggleBtn.style.color = 'white';
+        } else {
+            toggleBtn.innerHTML = '<i class="fas fa-volume-mute"></i> Auto-speak: OFF';
+            toggleBtn.classList.remove('active');
+            toggleBtn.style.background = 'var(--bg-glass)';
+            toggleBtn.style.color = 'var(--text-primary)';
         }
+    }
 
+    if (typeof showNotification === 'function') {
         showNotification(
             `Auto-speak ${autoSpeakEnabled ? 'enabled' : 'disabled'}`,
             'info'
         );
+    }
 
-        // Test voice if enabled
-        if (autoSpeakEnabled && voiceAssistant) {
-            voiceAssistant.speak('Auto-speak is now enabled and ready to use.');
-        }
-    };
+    // Test voice if enabled
+    if (autoSpeakEnabled && voiceAssistant) {
+        voiceAssistant.speak('Auto-speak is now enabled and ready to use.');
+    }
+};
 
     // Revolutionary AI response system
-    async function sendToGrok(message) {
-        if (!aiChatMessages) return;
+async function sendToGrok(message) {
+    if (!aiChatMessages) {
+        console.warn('aiChatMessages not initialized');
+        return;
+    }
 
-        if (!isMovieRelated(message)) {
-            addMessage('user', message);
-            const redirectResponse = `
+    if (!isMovieRelated(message)) {
+        addMessage('user', message);
+        const redirectResponse = `
         <div class="redirect-message">
             🎭 <strong>Entertainment Focus Mode Active</strong><br><br>
             I'm WAHAB VERSE AI, your specialized entertainment companion. I excel at:
@@ -499,28 +536,31 @@ function setupAIChat() {
             What kind of entertainment experience can I craft for you today? 🍿
         </div>
         `;
-            addMessage('ai', redirectResponse);
+        
+        addMessage('ai', redirectResponse);
 
-            // Handle auto-speak for redirect message
-            if (autoSpeakEnabled && voiceAssistant) {
-                setTimeout(() => {
-                    voiceAssistant.speak(redirectResponse);
-                }, 500);
-            }
-            return;
+        // Handle auto-speak for redirect message
+        if (autoSpeakEnabled && voiceAssistant) {
+            setTimeout(() => {
+                voiceAssistant.speak(redirectResponse);
+            }, 500);
         }
+        return;
+    }
 
-        addMessage('user', message);
+    addMessage('user', message);
 
-        const preferences = analyzeUserPreferences(message);
+    const preferences = analyzeUserPreferences(message);
+    if (AI_PERSONALITY) {
         AI_PERSONALITY.context.push({ type: 'message', content: message, preferences, timestamp: Date.now() });
+    }
 
-        // Show typing indicator
-        const typingId = 'ai-typing-' + Date.now();
-        const typingDiv = document.createElement('div');
-        typingDiv.id = typingId;
-        typingDiv.className = 'ai-typing-indicator';
-        typingDiv.innerHTML = `
+    // Show typing indicator
+    const typingId = 'ai-typing-' + Date.now();
+    const typingDiv = document.createElement('div');
+    typingDiv.id = typingId;
+    typingDiv.className = 'ai-typing-indicator';
+    typingDiv.innerHTML = `
         <div class="typing-header">
             <i class="fas fa-brain me-2"></i>WAHAB VERSE AI
             <span class="neural-badge">Processing...</span>
@@ -534,16 +574,16 @@ function setupAIChat() {
             <span class="typing-text">Analyzing content database & your preferences...</span>
         </div>
     `;
-        aiChatMessages.appendChild(typingDiv);
-        smoothScrollToBottom();
+    aiChatMessages.appendChild(typingDiv);
+    smoothScrollToBottom();
 
-        try {
-            const availableMovies = getAvailableMoviesForAI();
-            const movieContext = availableMovies.slice(0, 50).map(movie =>
-                `${movie.title} (${movie.year}) - ${movie.genre} - ${movie.mediaType} - Rating: ${movie.rating.toFixed(1)}/5`
-            ).join('\n');
+    try {
+        const availableMovies = getAvailableMoviesForAI();
+        const movieContext = availableMovies.slice(0, 50).map(movie =>
+            `${movie.title} (${movie.year}) - ${movie.genre} - ${movie.mediaType} - Rating: ${movie.rating.toFixed(1)}/5`
+        ).join('\n');
 
-            const systemPrompt = `You are WAHAB VERSE AI Neural v2.0, the most advanced entertainment AI assistant. You have deep emotional intelligence, sophisticated taste, and can read user moods perfectly.
+        const systemPrompt = `You are WAHAB VERSE AI Neural v2.0, the most advanced entertainment AI assistant. You have deep emotional intelligence, sophisticated taste, and can read user moods perfectly.
 
 PERSONALITY TRAITS:
 - Highly intelligent and perceptive
@@ -563,9 +603,9 @@ AVAILABLE CONTENT ON WAHAB VERSE:
 ${movieContext}
 
 CURRENT USER CONTEXT:
-- Previous mood: ${AI_PERSONALITY.memory.get('currentMood') || 'unknown'}
+- Previous mood: ${AI_PERSONALITY ? AI_PERSONALITY.memory.get('currentMood') || 'unknown' : 'unknown'}
 - Detected preferences: ${JSON.stringify(preferences)}
-- Conversation history: ${AI_PERSONALITY.context.length} interactions
+- Conversation history: ${AI_PERSONALITY ? AI_PERSONALITY.context.length : 0} interactions
 
 INSTRUCTIONS:
 1. Analyze the user's emotional state and preferences from their message
@@ -576,71 +616,71 @@ INSTRUCTIONS:
 6. Make movie titles clickable and emphasize with <strong> tags
 7. Be amazingly insightful and professional - surprise them with your intelligence`;
 
-            const enhancedMessage = `${message}\n\nPlease provide sophisticated, mood-aware recommendations with detailed psychological insights.`;
+        const enhancedMessage = `${message}\n\nPlease provide sophisticated, mood-aware recommendations with detailed psychological insights.`;
 
-            const response = await fetch('/api/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    message: enhancedMessage,
-                    system: systemPrompt
-                })
-            });
+        const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                message: enhancedMessage,
+                system: systemPrompt
+            })
+        });
 
-            const data = await response.json();
+        const data = await response.json();
 
-            // Remove typing indicator
-            const typingElement = document.getElementById(typingId);
-            if (typingElement) typingElement.remove();
+        // Remove typing indicator
+        const typingElement = document.getElementById(typingId);
+        if (typingElement) typingElement.remove();
 
-            if (data.choices && data.choices[0] && data.choices[0].message) {
-                let aiReply = data.choices[0].message.content;
-                aiReply = formatProfessionalResponse(aiReply, availableMovies);
-                addMessage('ai', aiReply);
+        if (data.choices && data.choices[0] && data.choices[0].message) {
+            let aiReply = data.choices[0].message.content;
+            aiReply = formatProfessionalResponse(aiReply, availableMovies);
+            addMessage('ai', aiReply);
 
-                // Enhanced auto-scroll and auto-speak
-                setTimeout(() => {
-                    smoothScrollToBottom();
+            // Enhanced auto-scroll and auto-speak
+            setTimeout(() => {
+                smoothScrollToBottom();
 
-                    // Auto-speak if enabled
-                    if (autoSpeakEnabled && voiceAssistant) {
-                        console.log('Auto-speak is enabled, speaking response...');
-                        voiceAssistant.speak(aiReply);
-                    }
-                }, 300);
-            } else {
-                const intelligentResponse = generateIntelligentFallback(message, preferences, availableMovies);
-                addMessage('ai', intelligentResponse);
-
-                setTimeout(() => {
-                    smoothScrollToBottom();
-
-                    if (autoSpeakEnabled && voiceAssistant) {
-                        console.log('Auto-speak is enabled, speaking fallback response...');
-                        voiceAssistant.speak(intelligentResponse);
-                    }
-                }, 300);
-            }
-
-        } catch (error) {
-            console.error('AI API Error:', error);
-
-            const typingElement = document.getElementById(typingId);
-            if (typingElement) typingElement.remove();
-
-            const localResponse = generateIntelligentFallback(message, preferences, availableMovies);
-            addMessage('ai', localResponse);
+                // Auto-speak if enabled
+                if (autoSpeakEnabled && voiceAssistant) {
+                    console.log('Auto-speak is enabled, speaking response...');
+                    voiceAssistant.speak(aiReply);
+                }
+            }, 300);
+        } else {
+            const intelligentResponse = generateIntelligentFallback(message, preferences, availableMovies);
+            addMessage('ai', intelligentResponse);
 
             setTimeout(() => {
                 smoothScrollToBottom();
 
                 if (autoSpeakEnabled && voiceAssistant) {
-                    console.log('Auto-speak is enabled, speaking error response...');
-                    voiceAssistant.speak(localResponse);
+                    console.log('Auto-speak is enabled, speaking fallback response...');
+                    voiceAssistant.speak(intelligentResponse);
                 }
             }, 300);
         }
+
+    } catch (error) {
+        console.error('AI API Error:', error);
+
+        const typingElement = document.getElementById(typingId);
+        if (typingElement) typingElement.remove();
+
+        const localResponse = generateIntelligentFallback(message, preferences, getAvailableMoviesForAI());
+        addMessage('ai', localResponse);
+
+        setTimeout(() => {
+            smoothScrollToBottom();
+
+            if (autoSpeakEnabled && voiceAssistant) {
+                console.log('Auto-speak is enabled, speaking error response...');
+                voiceAssistant.speak(localResponse);
+            }
+        }, 300);
     }
+}
     // Revolutionary content analysis system
     function analyzeUserPreferences(message) {
         const preferences = {
@@ -912,17 +952,19 @@ INSTRUCTIONS:
     }
 
     // Enhanced input handling
-    function handleSend() {
-        if (!aiChatInput) return;
-        const message = aiChatInput.value.trim();
-        if (!message) return;
+function handleSend() {
+    const aiChatInput = document.getElementById('aiChatInput');
+    if (!aiChatInput) return;
+    
+    const message = aiChatInput.value.trim();
+    if (!message) return;
 
-        aiChatInput.value = "";
-        sendToGrok(message);
-    }
+    aiChatInput.value = "";
+    sendToGrok(message);
+}
 
     // Event listeners
-    if (aiChatSend) {
+if (aiChatSend) {
         aiChatSend.addEventListener('click', handleSend);
     }
 
