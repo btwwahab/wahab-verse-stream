@@ -73,13 +73,13 @@ function setupAIChat() {
     }
 
     // Enhanced mood selection function
-    window.selectMood = function(mood) {
+    window.selectMood = function (mood) {
         const moodMessage = `I'm feeling ${mood} today!`;
         addMessage('user', moodMessage);
-        
+
         AI_PERSONALITY.memory.set('currentMood', mood);
-        AI_PERSONALITY.context.push({type: 'mood', value: mood, timestamp: Date.now()});
-        
+        AI_PERSONALITY.context.push({ type: 'mood', value: mood, timestamp: Date.now() });
+
         generateMoodBasedRecommendations(mood);
     };
 
@@ -97,7 +97,6 @@ function setupAIChat() {
         return entertainmentContext.some(keyword => lowerMessage.includes(keyword));
     }
 
-    // Professional message handling
     function addMessage(sender, message) {
         if (!aiChatMessages) return;
 
@@ -105,23 +104,60 @@ function setupAIChat() {
         const messageDiv = document.createElement('div');
         messageDiv.className = `chat-message ${isUser ? 'user-message' : 'ai-message'}`;
 
+        const messageId = 'msg-' + Date.now();
+
         messageDiv.innerHTML = `
-            <div class="message-header">
-                <div class="sender-info">
-                    <i class="fas fa-${isUser ? 'user' : 'brain'} me-2"></i>
-                    <span class="sender-name">${isUser ? 'You' : 'WAHAB VERSE AI'}</span>
-                    ${!isUser ? '<span class="ai-badge">Neural v2.0</span>' : ''}
-                </div>
+        <div class="message-header">
+            <div class="sender-info">
+                <i class="fas fa-${isUser ? 'user' : 'brain'} me-2"></i>
+                <span class="sender-name">${isUser ? 'You' : 'WAHAB VERSE AI'}</span>
+                ${!isUser ? '<span class="ai-badge">Neural v2.0</span>' : ''}
+            </div>
+            <div class="message-actions">
                 <div class="message-time">${new Date().toLocaleTimeString()}</div>
+                ${!isUser ? `
+                    <button class="speak-response-btn" 
+                            onclick="handleSpeakResponse('${messageId}')" 
+                            title="Read response aloud">
+                        <i class="fas fa-volume-up"></i>
+                    </button>
+                ` : ''}
             </div>
-            <div class="message-content">
-                ${message}
-            </div>
-        `;
+        </div>
+        <div class="message-content" id="${messageId}">
+            ${message}
+        </div>
+    `;
 
         aiChatMessages.appendChild(messageDiv);
         aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
     }
+
+    // Handle speak response button clicks
+    window.handleSpeakResponse = function (messageId) {
+        const messageElement = document.getElementById(messageId);
+        const textContent = messageElement.textContent;
+        voiceAssistant.speak(textContent); // 🎤 AI speaks here
+    };
+
+    // Auto-speak AI responses (optional - can be toggled by user preference)
+    let autoSpeakEnabled = false;
+
+    window.toggleAutoSpeak = function () {
+        autoSpeakEnabled = !autoSpeakEnabled;
+        const toggleBtn = document.getElementById('autoSpeakToggle');
+        if (toggleBtn) {
+            toggleBtn.innerHTML = autoSpeakEnabled
+                ? '<i class="fas fa-volume-up"></i> Auto-speak: ON'
+                : '<i class="fas fa-volume-mute"></i> Auto-speak: OFF';
+            toggleBtn.classList.toggle('active', autoSpeakEnabled);
+        }
+
+        showNotification(
+            `Auto-speak ${autoSpeakEnabled ? 'enabled' : 'disabled'}`,
+            'info'
+        );
+    };
 
     // Revolutionary AI response system
     async function sendToGrok(message) {
@@ -151,7 +187,7 @@ function setupAIChat() {
         addMessage('user', message);
 
         const preferences = analyzeUserPreferences(message);
-        AI_PERSONALITY.context.push({type: 'message', content: message, preferences, timestamp: Date.now()});
+        AI_PERSONALITY.context.push({ type: 'message', content: message, preferences, timestamp: Date.now() });
 
         // Show sophisticated typing indicator
         const typingId = 'ai-typing-' + Date.now();
@@ -219,7 +255,7 @@ INSTRUCTIONS:
             const response = await fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
+                body: JSON.stringify({
                     message: enhancedMessage,
                     system: systemPrompt
                 })
@@ -241,7 +277,7 @@ INSTRUCTIONS:
 
         } catch (error) {
             console.error('AI API Error:', error);
-            
+
             const typingElement = document.getElementById(typingId);
             if (typingElement) typingElement.remove();
 
@@ -298,7 +334,7 @@ INSTRUCTIONS:
     // Ultra-sophisticated mood-based recommendations
     function generateMoodBasedRecommendations(mood) {
         const availableMovies = getAvailableMoviesForAI();
-        
+
         const moodProfiles = {
             excited: {
                 primary: ['action', 'adventure', 'comedy'],
@@ -338,11 +374,11 @@ INSTRUCTIONS:
         };
 
         const profile = moodProfiles[mood] || moodProfiles.relaxed;
-        
+
         const recommendations = availableMovies.filter(movie => {
             const movieGenre = movie.genre.toLowerCase();
             return profile.primary.some(genre => movieGenre.includes(genre)) ||
-                   profile.secondary.some(genre => movieGenre.includes(genre));
+                profile.secondary.some(genre => movieGenre.includes(genre));
         }).slice(0, 6);
 
         const response = `
@@ -426,7 +462,7 @@ INSTRUCTIONS:
     function formatProfessionalResponse(text, availableMovies) {
         text = text.replace(/\*\*(.*?)\*\*/g, '<strong class="highlight-text">$1</strong>');
         text = text.replace(/\n/g, '<br>');
-        
+
         availableMovies.forEach(movie => {
             const titleRegex = new RegExp(`\\b${escapeRegExp(movie.title)}\\b`, 'gi');
             text = text.replace(titleRegex, `
@@ -445,12 +481,12 @@ INSTRUCTIONS:
     // Intelligent fallback system
     function generateIntelligentFallback(message, preferences, availableMovies) {
         const currentMood = AI_PERSONALITY.memory.get('currentMood') || 'unknown';
-        
+
         let recommendations = availableMovies;
-        
+
         if (preferences.genres.length > 0) {
-            recommendations = recommendations.filter(movie => 
-                preferences.genres.some(genre => 
+            recommendations = recommendations.filter(movie =>
+                preferences.genres.some(genre =>
                     movie.genre.toLowerCase().includes(genre)
                 )
             );
@@ -511,7 +547,7 @@ INSTRUCTIONS:
             `Carefully selected based on your viewing profile`,
             `Premium quality entertainment for discerning viewers`
         ];
-        
+
         return insights[Math.floor(Math.random() * insights.length)];
     }
 
@@ -520,7 +556,7 @@ INSTRUCTIONS:
         if (!aiChatInput) return;
         const message = aiChatInput.value.trim();
         if (!message) return;
-        
+
         aiChatInput.value = "";
         sendToGrok(message);
     }
@@ -589,7 +625,7 @@ window.playMovieFromChat = async function (movieId) {
 // Enhanced start experience function
 function startExperience() {
     showNotification('🧠 Initializing Advanced Neural System...', 'info');
-    
+
     setTimeout(() => {
         const aiChatModal = document.getElementById('aiChatModal');
         if (!aiChatModal) return;
@@ -604,6 +640,15 @@ function startExperience() {
 
         showNotification('🤖 Welcome to the future of entertainment AI!', 'success');
     }, 1000);
+}
+
+function handleAIResponse(aiReply) {
+    addMessage('ai', aiReply);
+    
+    // Auto-speak if enabled
+    if (autoSpeakEnabled && voiceAssistant) {
+        voiceAssistant.speak(aiReply); // 🎤 AI speaks automatically
+    }
 }
 
 // Initialize AI Chat when DOM is loaded
