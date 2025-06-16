@@ -1334,8 +1334,6 @@ body {
   }
 }
 
-
-
 .clickable-movie {
   position: relative;
   transition: all 0.3s ease;
@@ -1343,12 +1341,14 @@ body {
   border-radius: 4px;
   display: inline-block;
   margin: 0 2px;
+  cursor: pointer;
 }
 
 .clickable-movie:hover {
   background: var(--bg-glass) !important;
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(255, 0, 0, 0.3);
+  cursor: pointer;
 }
 
 .clickable-movie:active {
