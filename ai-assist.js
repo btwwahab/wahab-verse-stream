@@ -15,6 +15,226 @@ function setupAIChat() {
         context: [],
     };
 
+    // Chat storage functions
+    function saveChatToStorage() {
+        try {
+            const chatData = {
+                messages: getChatMessagesData(),
+                personality: {
+                    memory: Object.fromEntries(AI_PERSONALITY.memory),
+                    context: AI_PERSONALITY.context
+                },
+                timestamp: Date.now()
+            };
+            localStorage.setItem('wahab_verse_chat', JSON.stringify(chatData));
+        } catch (error) {
+            console.error('Error saving chat to storage:', error);
+        }
+    }
+
+    function loadChatFromStorage() {
+        try {
+            const savedChat = localStorage.getItem('wahab_verse_chat');
+            if (savedChat) {
+                const chatData = JSON.parse(savedChat);
+
+                // Restore AI personality data
+                if (chatData.personality) {
+                    if (chatData.personality.memory) {
+                        AI_PERSONALITY.memory = new Map(Object.entries(chatData.personality.memory));
+                    }
+                    if (chatData.personality.context) {
+                        AI_PERSONALITY.context = chatData.personality.context;
+                    }
+                }
+
+                return chatData.messages || [];
+            }
+        } catch (error) {
+            console.error('Error loading chat from storage:', error);
+        }
+        return [];
+    }
+
+    function getChatMessagesData() {
+        if (!aiChatMessages) return [];
+
+        const messages = [];
+        const messageElements = aiChatMessages.querySelectorAll('.chat-message');
+
+        messageElements.forEach((element, index) => {
+            const isUser = element.classList.contains('user-message');
+            const messageContent = element.querySelector('.message-content');
+            const messageTime = element.querySelector('.message-time');
+
+            if (messageContent) {
+                messages.push({
+                    id: index,
+                    sender: isUser ? 'user' : 'ai',
+                    content: messageContent.innerHTML,
+                    timestamp: messageTime ? messageTime.textContent : new Date().toLocaleTimeString(),
+                    isWelcome: element.querySelector('.ai-welcome-message') !== null
+                });
+            }
+        });
+
+        return messages;
+    }
+
+    function restoreChatMessages(messages) {
+        if (!aiChatMessages || messages.length === 0) return;
+
+        aiChatMessages.innerHTML = '';
+
+        messages.forEach(message => {
+            if (message.isWelcome) {
+                // Skip welcome message as it will be recreated
+                return;
+            }
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-message ${message.sender === 'user' ? 'user-message' : 'ai-message'}`;
+
+            const messageId = 'msg-' + Date.now() + '-' + message.id;
+            const isUser = message.sender === 'user';
+
+            messageDiv.innerHTML = `
+                <div class="message-header">
+                    <div class="sender-info">
+                        <i class="fas fa-${isUser ? 'user' : 'brain'} me-2"></i>
+                        <span class="sender-name">${isUser ? 'You' : 'WAHAB VERSE AI'}</span>
+                        ${!isUser ? '<span class="ai-badge">Neural v2.0</span>' : ''}
+                    </div>
+                    <div class="message-actions">
+                        <div class="message-time">${message.timestamp}</div>
+                        ${!isUser ? `
+                            <button class="speak-response-btn" 
+                                    onclick="handleSpeakResponse('${messageId}')" 
+                                    title="Read response aloud">
+                                <i class="fas fa-volume-up"></i>
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+                <div class="message-content" id="${messageId}">
+                    ${message.content}
+                </div>
+            `;
+
+            aiChatMessages.appendChild(messageDiv);
+        });
+
+        // Auto-scroll to show restored messages
+        setTimeout(() => {
+            smoothScrollToBottom();
+        }, 100);
+    }
+
+    function clearChatStorage() {
+        try {
+            localStorage.removeItem('wahab_verse_chat');
+            AI_PERSONALITY.memory.clear();
+            AI_PERSONALITY.context = [];
+            showNotification('Chat history cleared successfully', 'info');
+        } catch (error) {
+            console.error('Error clearing chat storage:', error);
+            showNotification('Error clearing chat history', 'danger');
+        }
+    }
+
+    // Add clear chat button functionality
+    window.clearChatHistory = function () {
+        if (confirm('Are you sure you want to clear all chat history? This action cannot be undone.')) {
+            clearChatStorage();
+
+            // Reset chat interface
+            if (aiChatMessages) {
+                showWelcomeMessage();
+            }
+        }
+    };
+
+    // Enhanced welcome message with chat history options
+    function showWelcomeMessage() {
+        if (!aiChatMessages) return;
+
+        const savedMessages = loadChatFromStorage();
+        const hasChatHistory = savedMessages.length > 0;
+
+        aiChatMessages.innerHTML = `
+            <div class="ai-welcome-message">
+                <div class="ai-header">
+                    <div class="neural-pulse"></div>
+                    <i class="fas fa-brain me-2"></i>
+                    <span class="ai-name">WAHAB VERSE AI - Neural v2.0</span>
+                    <div class="ai-status">🟢 Online & Learning</div>
+                </div>
+                <div class="ai-content">
+                    <div class="greeting-section">
+                        🎯 <strong>Neural Connection Established Successfully!</strong>
+                        <br><br>
+                        Welcome to the most advanced entertainment AI assistant. I'm equipped with:
+                        <br><br>
+                        <div class="feature-grid">
+                            <div class="feature-item">🧠 <strong>Mood Analysis Engine</strong><br>Advanced emotional intelligence</div>
+                            <div class="feature-item">🎬 <strong>Content DNA Mapping</strong><br>Deep genre understanding</div>
+                            <div class="feature-item">⚡ <strong>Instant Curation</strong><br>Personalized recommendations</div>
+                            <div class="feature-item">📊 <strong>Predictive Analytics</strong><br>What you'll love next</div>
+                        </div>
+                        <br>
+                        ${hasChatHistory ? `
+                            <div class="chat-history-section">
+                                <h5>💾 <strong>Chat History Detected</strong></h5>
+                                <p>I found our previous conversation. Would you like to continue where we left off?</p>
+                                <div class="history-buttons">
+                                    <button onclick="restorePreviousChat()" class="btn btn-primary btn-sm me-2">
+                                        <i class="fas fa-history me-1"></i>Restore Chat
+                                    </button>
+                                    <button onclick="startFreshChat()" class="btn btn-outline-secondary btn-sm me-2">
+                                        <i class="fas fa-plus me-1"></i>Start Fresh
+                                    </button>
+                                    <button onclick="clearChatHistory()" class="btn btn-outline-danger btn-sm">
+                                        <i class="fas fa-trash me-1"></i>Clear History
+                                    </button>
+                                </div>
+                            </div>
+                            <br>
+                        ` : ''}
+                        <div class="mood-starter">
+                            <strong>🎭 Quick Mood Check:</strong> How are you feeling today?<br>
+                            <div class="mood-buttons">
+                                <button onclick="selectMood('excited')" class="mood-btn">😃 Excited</button>
+                                <button onclick="selectMood('relaxed')" class="mood-btn">😌 Relaxed</button>
+                                <button onclick="selectMood('adventurous')" class="mood-btn">🚀 Adventurous</button>
+                                <button onclick="selectMood('romantic')" class="mood-btn">💝 Romantic</button>
+                                <button onclick="selectMood('thoughtful')" class="mood-btn">🤔 Thoughtful</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Auto-scroll to show welcome message
+        smoothScrollToBottom();
+    }
+
+    // Chat history management functions
+    window.restorePreviousChat = function () {
+        const savedMessages = loadChatFromStorage();
+        if (savedMessages.length > 0) {
+            restoreChatMessages(savedMessages);
+            showNotification(`Restored ${savedMessages.length} previous messages`, 'success');
+        } else {
+            showNotification('No chat history found', 'warning');
+        }
+    };
+
+    window.startFreshChat = function () {
+        showWelcomeMessage();
+        showNotification('Started fresh chat session', 'info');
+    };
+
     // Open AI Chat Modal with enhanced welcome
     if (aiToggle) {
         aiToggle.addEventListener('click', () => {
@@ -28,42 +248,7 @@ function setupAIChat() {
                     if (aiChatInput) aiChatInput.focus();
 
                     if (aiChatMessages) {
-                        aiChatMessages.innerHTML = `
-                            <div class="ai-welcome-message">
-                                <div class="ai-header">
-                                    <div class="neural-pulse"></div>
-                                    <i class="fas fa-brain me-2"></i>
-                                    <span class="ai-name">WAHAB VERSE AI - Neural v2.0</span>
-                                    <div class="ai-status">🟢 Online & Learning</div>
-                                </div>
-                                <div class="ai-content">
-                                    <div class="greeting-section">
-                                        🎯 <strong>Neural Connection Established Successfully!</strong>
-                                        <br><br>
-                                        Welcome to the most advanced entertainment AI assistant. I'm equipped with:
-                                        <br><br>
-                                        <div class="feature-grid">
-                                            <div class="feature-item">🧠 <strong>Mood Analysis Engine</strong><br>Advanced emotional intelligence</div>
-                                            <div class="feature-item">🎬 <strong>Content DNA Mapping</strong><br>Deep genre understanding</div>
-                                            <div class="feature-item">⚡ <strong>Instant Curation</strong><br>Personalized recommendations</div>
-                                            <div class="feature-item">📊 <strong>Predictive Analytics</strong><br>What you'll love next</div>
-                                        </div>
-                                        <br>
-                                        <div class="mood-starter">
-                                            <strong>🎭 Quick Mood Check:</strong> How are you feeling today?<br>
-                                            <div class="mood-buttons">
-                                                <button onclick="selectMood('excited')" class="mood-btn">😃 Excited</button>
-                                                <button onclick="selectMood('relaxed')" class="mood-btn">😌 Relaxed</button>
-                                                <button onclick="selectMood('adventurous')" class="mood-btn">🚀 Adventurous</button>
-                                                <button onclick="selectMood('romantic')" class="mood-btn">💝 Romantic</button>
-                                                <button onclick="selectMood('thoughtful')" class="mood-btn">🤔 Thoughtful</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                        aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
+                        showWelcomeMessage();
                     }
                 }, 500);
 
@@ -79,6 +264,9 @@ function setupAIChat() {
 
         AI_PERSONALITY.memory.set('currentMood', mood);
         AI_PERSONALITY.context.push({ type: 'mood', value: mood, timestamp: Date.now() });
+
+        // Save to storage after mood selection
+        saveChatToStorage();
 
         generateMoodBasedRecommendations(mood);
     };
@@ -107,30 +295,51 @@ function setupAIChat() {
         const messageId = 'msg-' + Date.now();
 
         messageDiv.innerHTML = `
-        <div class="message-header">
-            <div class="sender-info">
-                <i class="fas fa-${isUser ? 'user' : 'brain'} me-2"></i>
-                <span class="sender-name">${isUser ? 'You' : 'WAHAB VERSE AI'}</span>
-                ${!isUser ? '<span class="ai-badge">Neural v2.0</span>' : ''}
+            <div class="message-header">
+                <div class="sender-info">
+                    <i class="fas fa-${isUser ? 'user' : 'brain'} me-2"></i>
+                    <span class="sender-name">${isUser ? 'You' : 'WAHAB VERSE AI'}</span>
+                    ${!isUser ? '<span class="ai-badge">Neural v2.0</span>' : ''}
+                </div>
+                <div class="message-actions">
+                    <div class="message-time">${new Date().toLocaleTimeString()}</div>
+                    ${!isUser ? `
+                        <button class="speak-response-btn" 
+                                onclick="handleSpeakResponse('${messageId}')" 
+                                title="Read response aloud">
+                            <i class="fas fa-volume-up"></i>
+                        </button>
+                    ` : ''}
+                </div>
             </div>
-            <div class="message-actions">
-                <div class="message-time">${new Date().toLocaleTimeString()}</div>
-                ${!isUser ? `
-                    <button class="speak-response-btn" 
-                            onclick="handleSpeakResponse('${messageId}')" 
-                            title="Read response aloud">
-                        <i class="fas fa-volume-up"></i>
-                    </button>
-                ` : ''}
+            <div class="message-content" id="${messageId}">
+                ${message}
             </div>
-        </div>
-        <div class="message-content" id="${messageId}">
-            ${message}
-        </div>
-    `;
+        `;
 
         aiChatMessages.appendChild(messageDiv);
-        aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
+
+        // Enhanced auto-scroll functionality
+        smoothScrollToBottom();
+
+        // Additional scroll after a brief delay to handle content loading
+        setTimeout(() => {
+            smoothScrollToBottom();
+        }, 100);
+
+        // Save chat to storage after adding message
+        setTimeout(() => {
+            saveChatToStorage();
+        }, 200);
+    }
+
+    function smoothScrollToBottom() {
+        if (!aiChatMessages) return;
+
+        aiChatMessages.scrollTo({
+            top: aiChatMessages.scrollHeight,
+            behavior: 'smooth'
+        });
     }
 
     // Handle speak response button clicks
@@ -166,21 +375,21 @@ function setupAIChat() {
         if (!isMovieRelated(message)) {
             addMessage('user', message);
             addMessage('ai', `
-                <div class="redirect-message">
-                    🎭 <strong>Entertainment Focus Mode Active</strong><br><br>
-                    I'm WAHAB VERSE AI, your specialized entertainment companion. I excel at:
-                    <br><br>
-                    <div class="expertise-list">
-                        🎬 <strong>Movie Recommendations</strong> - Personalized to your taste<br>
-                        📺 <strong>Series Suggestions</strong> - Perfect binge-watching material<br>
-                        🎭 <strong>Mood-Based Curation</strong> - Content that matches your feelings<br>
-                        🔍 <strong>Genre Exploration</strong> - Discover new favorites<br>
-                        ⭐ <strong>Quality Analysis</strong> - Only the best recommendations
-                    </div>
-                    <br>
-                    What kind of entertainment experience can I craft for you today? 🍿
+            <div class="redirect-message">
+                🎭 <strong>Entertainment Focus Mode Active</strong><br><br>
+                I'm WAHAB VERSE AI, your specialized entertainment companion. I excel at:
+                <br><br>
+                <div class="expertise-list">
+                    🎬 <strong>Movie Recommendations</strong> - Personalized to your taste<br>
+                    📺 <strong>Series Suggestions</strong> - Perfect binge-watching material<br>
+                    🎭 <strong>Mood-Based Curation</strong> - Content that matches your feelings<br>
+                    🔍 <strong>Genre Exploration</strong> - Discover new favorites<br>
+                    ⭐ <strong>Quality Analysis</strong> - Only the best recommendations
                 </div>
-            `);
+                <br>
+                What kind of entertainment experience can I craft for you today? 🍿
+            </div>
+        `);
             return;
         }
 
@@ -189,27 +398,29 @@ function setupAIChat() {
         const preferences = analyzeUserPreferences(message);
         AI_PERSONALITY.context.push({ type: 'message', content: message, preferences, timestamp: Date.now() });
 
-        // Show sophisticated typing indicator
+        // Show sophisticated typing indicator with auto-scroll
         const typingId = 'ai-typing-' + Date.now();
         const typingDiv = document.createElement('div');
         typingDiv.id = typingId;
         typingDiv.className = 'ai-typing-indicator';
         typingDiv.innerHTML = `
-            <div class="typing-header">
-                <i class="fas fa-brain me-2"></i>WAHAB VERSE AI
-                <span class="neural-badge">Processing...</span>
+        <div class="typing-header">
+            <i class="fas fa-brain me-2"></i>WAHAB VERSE AI
+            <span class="neural-badge">Processing...</span>
+        </div>
+        <div class="typing-content">
+            <div class="neural-activity">
+                <div class="neural-dot"></div>
+                <div class="neural-dot"></div>
+                <div class="neural-dot"></div>
             </div>
-            <div class="typing-content">
-                <div class="neural-activity">
-                    <div class="neural-dot"></div>
-                    <div class="neural-dot"></div>
-                    <div class="neural-dot"></div>
-                </div>
-                <span class="typing-text">Analyzing content database & your preferences...</span>
-            </div>
-        `;
+            <span class="typing-text">Analyzing content database & your preferences...</span>
+        </div>
+    `;
         aiChatMessages.appendChild(typingDiv);
-        aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
+
+        // Scroll to show typing indicator
+        smoothScrollToBottom();
 
         try {
             const availableMovies = getAvailableMoviesForAI();
@@ -270,9 +481,26 @@ INSTRUCTIONS:
                 let aiReply = data.choices[0].message.content;
                 aiReply = formatProfessionalResponse(aiReply, availableMovies);
                 addMessage('ai', aiReply);
+
+                // Enhanced auto-scroll after AI response
+                setTimeout(() => {
+                    smoothScrollToBottom();
+                    // Auto-speak if enabled
+                    if (autoSpeakEnabled && voiceAssistant) {
+                        voiceAssistant.speak(aiReply);
+                    }
+                }, 150);
             } else {
                 const intelligentResponse = generateIntelligentFallback(message, preferences, availableMovies);
                 addMessage('ai', intelligentResponse);
+
+                // Auto-scroll for fallback response
+                setTimeout(() => {
+                    smoothScrollToBottom();
+                    if (autoSpeakEnabled && voiceAssistant) {
+                        voiceAssistant.speak(intelligentResponse);
+                    }
+                }, 150);
             }
 
         } catch (error) {
@@ -283,6 +511,11 @@ INSTRUCTIONS:
 
             const localResponse = generateIntelligentFallback(message, preferences, availableMovies);
             addMessage('ai', localResponse);
+
+            // Auto-scroll for error response
+            setTimeout(() => {
+                smoothScrollToBottom();
+            }, 150);
         }
     }
 
@@ -382,46 +615,51 @@ INSTRUCTIONS:
         }).slice(0, 6);
 
         const response = `
-            <div class="ai-analysis-response">
-                <div class="mood-analysis">
-                    <h4>🎭 Mood Analysis Complete</h4>
-                    <div class="analysis-details">
-                        <strong>Current State:</strong> ${mood.charAt(0).toUpperCase() + mood.slice(1)}<br>
-                        <strong>Recommended Tone:</strong> ${profile.tone}<br>
-                        <strong>Strategy:</strong> ${profile.description}
-                    </div>
-                </div>
-
-                <div class="curated-selection">
-                    <h4>🎬 Personally Curated for You</h4>
-                    <div class="recommendation-grid">
-                        ${recommendations.map((movie, index) => `
-                            <div class="recommendation-card" onclick="playMovieFromChat(${movie.id})">
-                                <div class="rec-number">${index + 1}</div>
-                                <div class="rec-content">
-                                    <strong class="movie-title-clickable">${movie.title}</strong>
-                                    <div class="rec-details">
-                                        ${movie.year} • ${movie.genre} • ⭐ ${movie.rating.toFixed(1)}/5
-                                    </div>
-                                    <div class="rec-reason">
-                                        ${generateRecommendationReason(movie, mood, profile)}
-                                    </div>
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-
-                <div class="ai-insights">
-                    <h4>🧠 Neural Insights</h4>
-                    <div class="insight-text">
-                        Based on your ${mood} mood, I've analyzed ${availableMovies.length} titles and selected content that matches your emotional wavelength. Each recommendation is calibrated for maximum enjoyment and mood enhancement.
-                    </div>
+        <div class="ai-analysis-response">
+            <div class="mood-analysis">
+                <h4>🎭 Mood Analysis Complete</h4>
+                <div class="analysis-details">
+                    <strong>Current State:</strong> ${mood.charAt(0).toUpperCase() + mood.slice(1)}<br>
+                    <strong>Recommended Tone:</strong> ${profile.tone}<br>
+                    <strong>Strategy:</strong> ${profile.description}
                 </div>
             </div>
-        `;
+
+            <div class="curated-selection">
+                <h4>🎬 Personally Curated for You</h4>
+                <div class="recommendation-grid">
+                    ${recommendations.map((movie, index) => `
+                        <div class="recommendation-card" onclick="playMovieFromChat(${movie.id})">
+                            <div class="rec-number">${index + 1}</div>
+                            <div class="rec-content">
+                                <strong class="movie-title-clickable">${movie.title}</strong>
+                                <div class="rec-details">
+                                    ${movie.year} • ${movie.genre} • ⭐ ${movie.rating.toFixed(1)}/5
+                                </div>
+                                <div class="rec-reason">
+                                    ${generateRecommendationReason(movie, mood, profile)}
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+
+            <div class="ai-insights">
+                <h4>🧠 Neural Insights</h4>
+                <div class="insight-text">
+                    Based on your ${mood} mood, I've analyzed ${availableMovies.length} titles and selected content that matches your emotional wavelength. Each recommendation is calibrated for maximum enjoyment and mood enhancement.
+                </div>
+            </div>
+        </div>
+    `;
 
         addMessage('ai', response);
+
+        // Auto-scroll after mood-based recommendations
+        setTimeout(() => {
+            smoothScrollToBottom();
+        }, 200);
     }
 
     // Generate personalized recommendation reasons
@@ -576,6 +814,91 @@ INSTRUCTIONS:
     }
 }
 
+const aiModal = document.getElementById('aiChatModal');
+if (aiModal) {
+    aiModal.addEventListener('hidden.bs.modal', function () {
+        saveChatToStorage();
+    });
+}
+
+// Save chat periodically (every 30 seconds)
+setInterval(() => {
+    if (aiChatMessages && aiChatMessages.children.length > 1) {
+        saveChatToStorage();
+    }
+}, 30000);
+
+window.exportChatHistory = function () {
+    try {
+        const savedChat = localStorage.getItem('wahab_verse_chat');
+        if (!savedChat) {
+            showNotification('No chat history to export', 'warning');
+            return;
+        }
+
+        const chatData = JSON.parse(savedChat);
+        const exportData = {
+            ...chatData,
+            exportDate: new Date().toISOString(),
+            version: '1.0'
+        };
+
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `wahab-verse-chat-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        URL.revokeObjectURL(url);
+        showNotification('Chat history exported successfully', 'success');
+    } catch (error) {
+        console.error('Error exporting chat:', error);
+        showNotification('Error exporting chat history', 'danger');
+    }
+};
+
+window.importChatHistory = function () {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+
+    input.onchange = function (event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            try {
+                const importData = JSON.parse(e.target.result);
+
+                if (importData.messages && Array.isArray(importData.messages)) {
+                    localStorage.setItem('wahab_verse_chat', JSON.stringify(importData));
+                    showNotification('Chat history imported successfully', 'success');
+
+                    // Refresh the current chat if modal is open
+                    const aiModal = document.getElementById('aiChatModal');
+                    if (aiModal && aiModal.classList.contains('show')) {
+                        window.restorePreviousChat();
+                    }
+                } else {
+                    showNotification('Invalid chat history file', 'danger');
+                }
+            } catch (error) {
+                console.error('Error importing chat:', error);
+                showNotification('Error importing chat history', 'danger');
+            }
+        };
+
+        reader.readAsText(file);
+    };
+
+    input.click();
+};
+
 // Helper functions
 function getAvailableMoviesForAI() {
     const allContent = [...moviesData.trending, ...moviesData.movies, ...moviesData.series];
@@ -644,7 +967,7 @@ function startExperience() {
 
 function handleAIResponse(aiReply) {
     addMessage('ai', aiReply);
-    
+
     // Auto-speak if enabled
     if (autoSpeakEnabled && voiceAssistant) {
         voiceAssistant.speak(aiReply); // 🎤 AI speaks automatically
