@@ -69,6 +69,8 @@ class VoiceAssistant {
         };
     }
 
+    
+
     loadVoices() {
         this.voices = this.synthesis.getVoices();
         
@@ -241,6 +243,8 @@ class VoiceAssistant {
         }
     }
 }
+
+
 
 // Initialize voice assistant
 let voiceAssistant = null;
