@@ -311,18 +311,18 @@ function setupAIChat() {
     }
 
     function addMessage(sender, message) {
-        if (!aiChatMessages) {
-            console.warn('aiChatMessages not found');
-            return;
-        }
+    if (!aiChatMessages) {
+        console.warn('aiChatMessages not found');
+        return;
+    }
 
-        const isUser = sender === 'user';
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `chat-message ${isUser ? 'user-message' : 'ai-message'}`;
+    const isUser = sender === 'user';
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `chat-message ${isUser ? 'user-message' : 'ai-message'}`;
 
-        const messageId = 'msg-' + Date.now();
+    const messageId = 'msg-' + Date.now();
 
-        messageDiv.innerHTML = `
+    messageDiv.innerHTML = `
         <div class="message-header">
             <div class="sender-info">
                 <i class="fas fa-${isUser ? 'user' : 'brain'} me-2"></i>
@@ -345,52 +345,85 @@ function setupAIChat() {
         </div>
     `;
 
-        aiChatMessages.appendChild(messageDiv);
+    aiChatMessages.appendChild(messageDiv);
 
-        // Force scroll to bottom immediately and with delay
-        requestAnimationFrame(() => {
-            smoothScrollToBottom();
-        });
-
-        setTimeout(() => {
-            smoothScrollToBottom();
-        }, 100);
-
-        setTimeout(() => {
-            smoothScrollToBottom();
-        }, 300);
-
-        // Save chat to storage
-        setTimeout(() => {
-            saveChatToStorage();
-        }, 200);
-    }
-
-    function smoothScrollToBottom() {
-        if (!aiChatMessages) {
-            console.warn('Chat messages container not found for scrolling');
-            return;
-        }
-
+    // Enhanced scrolling with multiple approaches and better timing
+    const performScroll = () => {
         try {
-            // Multiple scroll approaches for better compatibility
+            // Method 1: Direct scroll
             aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
-
-            // Also try smooth scroll
+            
+            // Method 2: Smooth scroll
             aiChatMessages.scrollTo({
                 top: aiChatMessages.scrollHeight,
                 behavior: 'smooth'
             });
-
-            // Force another scroll after a brief delay
-            setTimeout(() => {
-                aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
-            }, 50);
-
         } catch (error) {
-            console.error('Error scrolling chat:', error);
+            console.error('Scroll error:', error);
         }
+    };
+
+    // Multiple scroll attempts with different timings
+    performScroll(); // Immediate
+    
+    requestAnimationFrame(() => {
+        performScroll(); // Next frame
+    });
+    
+    setTimeout(() => {
+        performScroll(); // After 100ms
+    }, 100);
+    
+    setTimeout(() => {
+        performScroll(); // After 300ms
+    }, 300);
+    
+    setTimeout(() => {
+        performScroll(); // After 500ms (for complex content)
+    }, 500);
+
+    // Save chat to storage
+    setTimeout(() => {
+        if (typeof saveChatToStorage === 'function') {
+            saveChatToStorage();
+        }
+    }, 200);
+}
+
+function smoothScrollToBottom() {
+    if (!aiChatMessages) {
+        console.warn('Chat messages container not found for scrolling');
+        return;
     }
+
+    try {
+        const isAtBottom = aiChatMessages.scrollTop + aiChatMessages.clientHeight >= aiChatMessages.scrollHeight - 10;
+        
+        // Force scroll to bottom
+        const scrollToBottom = () => {
+            aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
+        };
+
+        // Immediate scroll
+        scrollToBottom();
+
+        // Also try smooth scroll if not already at bottom
+        if (!isAtBottom) {
+            aiChatMessages.scrollTo({
+                top: aiChatMessages.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+
+        // Force scroll again after delay
+        setTimeout(scrollToBottom, 50);
+        setTimeout(scrollToBottom, 150);
+        setTimeout(scrollToBottom, 300);
+
+    } catch (error) {
+        console.error('Error scrolling chat:', error);
+    }
+}
 
     // Handle speak response button clicks
 window.handleSpeakResponse = function (messageId) {
@@ -570,33 +603,48 @@ INSTRUCTIONS:
             if (typingElement) typingElement.remove();
 
             if (data.choices && data.choices[0] && data.choices[0].message) {
-                let aiReply = data.choices[0].message.content;
-                aiReply = formatProfessionalResponse(aiReply, availableMovies);
-                addMessage('ai', aiReply);
+    let aiReply = data.choices[0].message.content;
+    aiReply = formatProfessionalResponse(aiReply, availableMovies);
+    addMessage('ai', aiReply);
 
-                // Enhanced auto-scroll and auto-speak
-                setTimeout(() => {
-                    smoothScrollToBottom();
+    // Enhanced auto-scroll with multiple attempts
+    const ensureScroll = () => {
+        setTimeout(() => smoothScrollToBottom(), 100);
+        setTimeout(() => smoothScrollToBottom(), 300);
+        setTimeout(() => smoothScrollToBottom(), 600);
+        setTimeout(() => smoothScrollToBottom(), 1000);
+    };
 
-                    // Auto-speak if enabled
-                    if (autoSpeakEnabled && window.voiceAssistant) {
-                        console.log('Auto-speak is enabled, speaking response...');
-                        window.voiceAssistant.speak(aiReply);
-                    }
-                }, 300);
-            } else {
-                const intelligentResponse = generateIntelligentFallback(message, preferences, availableMovies);
-                addMessage('ai', intelligentResponse);
+    ensureScroll();
 
-                setTimeout(() => {
-                    smoothScrollToBottom();
+    // Auto-speak if enabled
+    if (autoSpeakEnabled && window.voiceAssistant) {
+        setTimeout(() => {
+            console.log('Auto-speak is enabled, speaking response...');
+            window.voiceAssistant.speak(aiReply);
+        }, 800); // Delayed to allow scrolling to complete
+    }
+} else {
+    const intelligentResponse = generateIntelligentFallback(message, preferences, availableMovies);
+    addMessage('ai', intelligentResponse);
 
-                    if (autoSpeakEnabled && window.voiceAssistant) {
-                        console.log('Auto-speak is enabled, speaking fallback response...');
-                         window.voiceAssistant.speak(intelligentResponse);
-                    }
-                }, 300);
-            }
+    // Same enhanced scrolling for fallback
+    const ensureScroll = () => {
+        setTimeout(() => smoothScrollToBottom(), 100);
+        setTimeout(() => smoothScrollToBottom(), 300);
+        setTimeout(() => smoothScrollToBottom(), 600);
+        setTimeout(() => smoothScrollToBottom(), 1000);
+    };
+
+    ensureScroll();
+
+    if (autoSpeakEnabled && window.voiceAssistant) {
+        setTimeout(() => {
+            console.log('Auto-speak is enabled, speaking fallback response...');
+            window.voiceAssistant.speak(intelligentResponse);
+        }, 800);
+    }
+}
 
         } catch (error) {
             console.error('AI API Error:', error);
@@ -914,10 +962,26 @@ INSTRUCTIONS:
     }
 }
 
+// Update the modal show event listener
 const aiModal = document.getElementById('aiChatModal');
 if (aiModal) {
+    aiModal.addEventListener('shown.bs.modal', function () {
+        // Ensure aiChatMessages is properly referenced
+        aiChatMessages = document.getElementById('aiChatMessages');
+        
+        // Set up auto-scroll
+        setupAutoScroll();
+        
+        // Initial scroll to bottom
+        setTimeout(() => {
+            smoothScrollToBottom();
+        }, 200);
+    });
+
     aiModal.addEventListener('hidden.bs.modal', function () {
-        saveChatToStorage();
+        if (typeof saveChatToStorage === 'function') {
+            saveChatToStorage();
+        }
     });
 }
 
@@ -1076,6 +1140,42 @@ function handleAIResponse(aiReply) {
         }, 500);
     }
 }
+
+function setupAutoScroll() {
+    if (!aiChatMessages) return;
+
+    // Create a MutationObserver to watch for new messages
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                // New content added, scroll to bottom
+                setTimeout(() => {
+                    smoothScrollToBottom();
+                }, 100);
+            }
+        });
+    });
+
+    // Start observing
+    observer.observe(aiChatMessages, {
+        childList: true,
+        subtree: true
+    });
+
+    // Also observe for content changes within messages
+    const contentObserver = new MutationObserver(() => {
+        setTimeout(() => smoothScrollToBottom(), 50);
+    });
+
+    contentObserver.observe(aiChatMessages, {
+        childList: true,
+        subtree: true,
+        characterData: true
+    });
+}
+
+// Call this after aiChatMessages is initialized
+setupAutoScroll();
 
 // Initialize AI Chat when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
