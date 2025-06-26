@@ -784,6 +784,19 @@ function createLoadMoreCategoriesSection() {
   loadMoreSection.className = 'content-section text-center';
   loadMoreSection.id = 'load-more-categories-section';
 
+  loadMoreSection.innerHTML = `
+    <div class="container">
+      <div class="text-center">
+        <button class="btn btn-hero load-more-categories-btn" 
+                id="load-more-categories" 
+                onclick="loadMoreCategories()">
+          <i class="fas fa-plus-circle me-2"></i>
+          Load More Categories
+        </button>
+      </div>
+    </div>
+  `;
+
   if (watchlistSection) {
     watchlistSection.insertAdjacentElement('beforebegin', loadMoreSection);
   } else {
