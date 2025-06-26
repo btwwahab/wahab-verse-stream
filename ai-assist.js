@@ -273,34 +273,76 @@ function setupAIChat() {
     }
 
     if (aiToggle) {
-        aiToggle.addEventListener('click', () => {
+        aiToggle.addEventListener('click', function(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            
+            console.log('AI Toggle clicked'); // Debug log
+            
             if (typeof showNotification === 'function') {
                 showNotification('🧠 Activating Neural Intelligence System...', 'info');
             }
 
             setTimeout(() => {
-                // Use the global modal instance
-                if (aiChatModalInstance) {
-                    aiChatModalInstance.show();
-                } else {
-                    // Fallback if instance not available
-                    const modal = new bootstrap.Modal(document.getElementById('aiChatModal'));
-                    modal.show();
+                const aiChatModal = document.getElementById('aiChatModal');
+                if (!aiChatModal) {
+                    console.error('AI Chat Modal element not found');
+                    return;
                 }
 
-                setTimeout(() => {
-                    if (aiChatInput) aiChatInput.focus();
-
-                    if (aiChatMessages) {
-                        showWelcomeMessage();
+                try {
+                    // Remove any existing modal instances
+                    const existingInstance = bootstrap.Modal.getInstance(aiChatModal);
+                    if (existingInstance) {
+                        existingInstance.dispose();
                     }
-                }, 500);
 
-                if (typeof showNotification === 'function') {
-                    showNotification('🤖 Advanced AI Assistant Ready! Neural networks activated.', 'success');
+                    // Create fresh modal instance
+                    const modal = new bootstrap.Modal(aiChatModal, {
+                        backdrop: true,
+                        keyboard: true,
+                        focus: true
+                    });
+                    
+                    modal.show();
+                    
+                    console.log('Modal show() called'); // Debug log
+
+                    setTimeout(() => {
+                        if (aiChatInput) {
+                            aiChatInput.focus();
+                        }
+
+                        if (aiChatMessages) {
+                            showWelcomeMessage();
+                        }
+                    }, 500);
+
+                    if (typeof showNotification === 'function') {
+                        showNotification('🤖 Advanced AI Assistant Ready! Neural networks activated.', 'success');
+                    }
+                } catch (error) {
+                    console.error('Error opening AI modal:', error);
+                    
+                    // Fallback method
+                    aiChatModal.classList.add('show', 'fade');
+                    aiChatModal.style.display = 'block';
+                    aiChatModal.setAttribute('aria-modal', 'true');
+                    aiChatModal.setAttribute('role', 'dialog');
+                    aiChatModal.removeAttribute('aria-hidden');
+                    
+                    // Add backdrop
+                    const backdrop = document.createElement('div');
+                    backdrop.className = 'modal-backdrop fade show';
+                    document.body.appendChild(backdrop);
+                    document.body.classList.add('modal-open');
+                    
+                    console.log('Fallback modal opening used'); // Debug log
                 }
             }, 1000);
         });
+    } else {
+        console.error('AI Assistant toggle not found');
     }
 
     // Update the clearChatStorage function
@@ -1294,34 +1336,53 @@ window.playMovieFromChat = async function (movieId) {
     }
 };
 
-// Enhanced start experience function
+
+// Add this function to main.js (it's referenced in ai-assist.js but not defined in main.js)
 function startExperience() {
     if (typeof showNotification === 'function') {
         showNotification('🧠 Initializing Advanced Neural System...', 'info');
     }
 
     setTimeout(() => {
-        // Use global modal instance
-        if (aiChatModalInstance) {
-            aiChatModalInstance.show();
-        } else {
-            const aiChatModal = document.getElementById('aiChatModal');
-            if (aiChatModal) {
-                const modal = new bootstrap.Modal(aiChatModal);
+        // Try to open AI chat modal
+        const aiChatModal = document.getElementById('aiChatModal');
+        if (aiChatModal) {
+            let modal;
+            
+            // Try to get existing instance or create new one
+            try {
+                modal = bootstrap.Modal.getInstance(aiChatModal);
+                if (!modal) {
+                    modal = new bootstrap.Modal(aiChatModal);
+                }
                 modal.show();
+            } catch (error) {
+                console.error('Error opening AI modal:', error);
+                // Fallback method
+                aiChatModal.classList.add('show');
+                aiChatModal.style.display = 'block';
+                document.body.classList.add('modal-open');
             }
-        }
 
-        setTimeout(() => {
-            const aiChatInput = document.getElementById('aiChatInput');
-            if (aiChatInput) aiChatInput.focus();
-        }, 500);
+            setTimeout(() => {
+                const aiChatInput = document.getElementById('aiChatInput');
+                if (aiChatInput) aiChatInput.focus();
+            }, 500);
 
-        if (typeof showNotification === 'function') {
-            showNotification('🤖 Welcome to the future of entertainment AI!', 'success');
+            if (typeof showNotification === 'function') {
+                showNotification('🤖 Welcome to the future of entertainment AI!', 'success');
+            }
+        } else {
+            console.error('AI Chat Modal element not found');
+            if (typeof showNotification === 'function') {
+                showNotification('AI Assistant not available', 'danger');
+            }
         }
     }, 1000);
 }
+
+// Make sure it's globally available
+window.startExperience = startExperience;
 
 // Initialize AI Chat when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
