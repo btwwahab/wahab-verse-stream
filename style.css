@@ -3200,31 +3200,6 @@ margin-bottom: 1rem;
         min-height: 90vh;
     }
     
-    #aiChatModal .modal-header {
-        padding: 1rem;
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 1rem;
-    }
-    
-    .modal-title-section {
-        width: 100%;
-        justify-content: space-between;
-    }
-    
-    #aiChatModal .modal-title {
-        font-size: 1.1rem;
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.5rem;
-    }
-    
-    .modal-header-controls {
-        width: 100%;
-        justify-content: space-between;
-        margin-top: 0.5rem;
-    }
-    
     #autoSpeakToggle {
         font-size: 0.7rem;
         padding: 5px 10px;
@@ -3345,21 +3320,9 @@ margin-bottom: 1rem;
         border-radius: 10px;
         min-height: 95vh;
     }
-    
-    #aiChatModal .modal-header {
-        padding: 0.8rem;
-    }
 
     .neural-pulse{
       display: none;
-    }
-    
-    #aiChatModal .modal-title {
-        font-size: 1rem;
-    }
-    
-    #aiChatModal .modal-title i {
-        font-size: 1.2rem;
     }
     
     #autoSpeakToggle {
@@ -3444,14 +3407,6 @@ margin-bottom: 1rem;
         min-height: 98vh;
     }
     
-    #aiChatModal .modal-header {
-        padding: 0.6rem;
-    }
-    
-    #aiChatModal .modal-title {
-        font-size: 0.9rem;
-    }
-    
     #autoSpeakToggle {
         font-size: 0.6rem;
         padding: 3px 6px;
@@ -3480,10 +3435,7 @@ margin-bottom: 1rem;
     #aiChatInput::placeholder {
         font-size: 0.75rem;
     }
-    
-    .modal-header-controls {
-        gap: 0.5rem;
-    }
+
 }
 
 /* Landscape Mobile Orientation */
@@ -4548,4 +4500,223 @@ margin-bottom: 1rem;
     font-size: 0.9rem;
     letter-spacing: 0.5px;
   }
+}
+
+/* ========================================
+         ENHANCED MOBILE-ONLY MODAL HEADER RESPONSIVENESS
+         ======================================== */
+
+/* Only apply responsive styles to mobile screens (768px and below) */
+@media (max-width: 768px) {
+    #aiChatModal .modal-header {
+        padding: 1rem !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.75rem !important;
+        min-height: auto !important;
+        background: linear-gradient(135deg, var(--bg-glass-strong), rgba(255, 0, 0, 0.1)) !important;
+    }
+
+    /* Title section takes full width on mobile */
+    .modal-title-section {
+        width: 100% !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        flex-wrap: nowrap !important;
+        min-width: 0 !important;
+    }
+
+    #aiChatModal .modal-title {
+        font-size: 1.1rem !important;
+        flex: 1 !important;
+        min-width: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 0.5rem !important;
+        flex-wrap: nowrap !important;
+        text-overflow: ellipsis !important;
+        overflow: hidden !important;
+        white-space: nowrap !important;
+    }
+
+    #aiChatModal .modal-title i {
+        font-size: 1.2rem !important;
+        flex-shrink: 0 !important;
+    }
+
+    #aiChatModal .modal-title span {
+        flex: 1 !important;
+        min-width: 0 !important;
+        text-overflow: ellipsis !important;
+        overflow: hidden !important;
+        white-space: nowrap !important;
+    }
+
+    /* Controls section adjustments */
+    .modal-header-controls {
+        width: 100% !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 0.75rem !important;
+        margin-left: 0 !important;
+        flex-wrap: wrap !important;
+    }
+
+    /* Auto speak toggle responsive sizing */
+    #autoSpeakToggle {
+        font-size: 0.8rem !important;
+        padding: 6px 12px !important;
+        min-width: 120px !important;
+        flex: 1 !important;
+        max-width: 200px !important;
+        white-space: nowrap !important;
+        text-overflow: ellipsis !important;
+        overflow: hidden !important;
+    }
+
+    /* Close button stays at proper size */
+    #aiChatModal .btn-close {
+        width: 32px !important;
+        height: 32px !important;
+        font-size: 1rem !important;
+        flex-shrink: 0 !important;
+        margin-left: auto !important;
+    }
+}
+
+/* Small mobile screens (480px and below) */
+@media (max-width: 480px) {
+    #aiChatModal .modal-header {
+        padding: 0.75rem !important;
+        gap: 0.5rem !important;
+    }
+
+    #aiChatModal .modal-title {
+        font-size: 1rem !important;
+        gap: 0.4rem !important;
+    }
+
+    #aiChatModal .modal-title i {
+        font-size: 1.1rem !important;
+    }
+
+    .modal-header-controls {
+        gap: 0.5rem !important;
+        flex-direction: row !important;
+        align-items: center !important;
+    }
+
+    #autoSpeakToggle {
+        font-size: 0.75rem !important;
+        padding: 5px 10px !important;
+        min-width: 100px !important;
+        max-width: 150px !important;
+    }
+
+    #aiChatModal .btn-close {
+        width: 28px !important;
+        height: 28px !important;
+        font-size: 0.9rem !important;
+    }
+}
+
+/* Very small mobile screens (360px and below) */
+@media (max-width: 360px) {
+    #aiChatModal .modal-header {
+        padding: 1rem !important;
+    }
+
+    #aiChatModal .modal-title {
+        font-size: 0.9rem !important;
+        display: none !important; /* Hide title on very small screens */
+    }
+
+    #aiChatModal .modal-title span {
+        font-size: 0.85rem !important;
+    }
+
+    .modal-header-controls {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.4rem !important;
+    }
+
+    #autoSpeakToggle {
+        font-size: 0.7rem !important;
+        padding: 4px 8px !important;
+        min-width: auto !important;
+        max-width: none !important;
+        width: 100% !important;
+        text-align: center !important;
+    }
+
+    #aiChatModal .btn-close {
+        width: 26px !important;
+        height: 26px !important;
+        font-size: 0.85rem !important;
+        align-self: flex-end !important;
+    }
+}
+
+/* Landscape orientation on mobile */
+@media (max-width: 768px) and (orientation: landscape) {
+    #aiChatModal .modal-header {
+        padding: 0.75rem 1rem !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 1rem !important;
+    }
+
+    .modal-title-section {
+        flex: 1 !important;
+        min-width: 0 !important;
+    }
+
+    .modal-header-controls {
+        width: auto !important;
+        flex: 0 0 auto !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 0.75rem !important;
+    }
+
+    #autoSpeakToggle {
+        min-width: 100px !important;
+        max-width: 140px !important;
+        flex: none !important;
+    }
+}
+
+/* Fix for modal title overflow on all mobile screens */
+@media (max-width: 768px) {
+    #aiChatModal .modal-content {
+        border-radius: 15px !important;
+        margin: 0.5rem !important;
+        max-width: calc(100% - 1rem) !important;
+    }
+
+    /* Ensure proper text handling */
+    #aiChatModal .modal-title span {
+        display: inline-block !important;
+        max-width: 100% !important;
+        text-overflow: ellipsis !important;
+        overflow: hidden !important;
+        white-space: nowrap !important;
+    }
+
+    /* Make sure close button is always accessible */
+    #aiChatModal .btn-close {
+        position: relative !important;
+        z-index: 100 !important;
+        background: var(--bg-secondary) !important;
+        border: 2px solid var(--primary) !important;
+        border-radius: 6px !important;
+    }
+
+    #aiChatModal .btn-close:hover {
+        background: var(--primary) !important;
+        transform: scale(1.05) !important;
+    }
 }
