@@ -4,23 +4,76 @@ let categoriesData = {
   categoriesPerLoad: 5
 };
 
+let currentNotification = null;
+let notificationQueue = [];
+
 document.addEventListener('DOMContentLoaded', function () {
   initializeNeuroFlix();
 });
 
+// Update your initializeNeuroFlix function to include modal management
 function initializeNeuroFlix() {
-  createParticleField();
-  setupScrollEffects();
-  setupInteractions();
-  setupSearch();
+    createParticleField();
+    setupScrollEffects();
+    setupInteractions();
+    setupSearch();
+    fixModalAccessibility();
+    enhanceLogoAnimation();
+    initializeNeuroLogo();
+    initializeModalManagement(); // Add this line
+    
+    loadContentLibrary().then(() => {
+        populateCategoryPills();
+        createDynamicSections();
+    }).catch(error => {
+        console.error('Failed to initialize:', error);
+        showNotification('Failed to load content. Please check your internet connection.', 'danger');
+    });
+}
 
-  loadContentLibrary().then(() => {
-    populateCategoryPills();
-    createDynamicSections();
-  }).catch(error => {
-    console.error('Failed to initialize:', error);
-    showNotification('Failed to load content. Please check your internet connection.', 'danger');
-  });
+// Enhanced modal management functions
+function initializeModalManagement() {
+    // Fix modal backdrop issues globally
+    document.addEventListener('click', function(event) {
+        // Check if clicking on modal backdrop
+        if (event.target.classList.contains('modal') && event.target.classList.contains('show')) {
+            const modalId = event.target.id;
+            
+            // Only allow backdrop click to close for non-critical modals
+            if (modalId === 'aiChatModal') {
+                // Allow AI chat modal to close on backdrop click
+                closeAIModal();
+            }
+            // Don't close clear chat modal on backdrop click (it's static)
+        }
+    });
+    
+    // Global escape key handler
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            const openModals = document.querySelectorAll('.modal.show');
+            openModals.forEach(modal => {
+                if (modal.id === 'aiChatModal') {
+                    closeAIModal();
+                }
+                // Don't close clear chat modal with escape key
+            });
+        }
+    });
+    
+    // Periodic cleanup of orphaned backdrops
+    setInterval(() => {
+        const openModals = document.querySelectorAll('.modal.show');
+        const backdrops = document.querySelectorAll('.modal-backdrop');
+        
+        // If no modals are open but backdrops exist, remove them
+        if (openModals.length === 0 && backdrops.length > 0) {
+            backdrops.forEach(backdrop => backdrop.remove());
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+        }
+    }, 5000);
 }
 
 function createParticleField() {
@@ -232,7 +285,7 @@ async function showMovieInfo(movie, directPlay = false) {
         <div class="col-md-8">
           <h4 class="mb-3 text-glow" style="color: var(--primary);">${movie.title}</h4>
           <span class="platform-available">
-            <i class="fas fa-check-circle me-1"></i>Available on WAHAB VERSE
+            <i class="fas fa-check-circle me-1"></i>Available on Aziona Steam
           </span>
           <p class="mb-2 mt-3"><strong>Genre:</strong> <span style="color: var(--secondary);">${movie.genre}</span></p>
           <div class="mb-3">
@@ -388,47 +441,255 @@ function exploreContent() {
   }
 }
 
+// Notification Management System
+
 function showNotification(message, type = 'info') {
+  // Close current notification if exists
+  if (currentNotification && currentNotification.parentElement) {
+    closeNotification(currentNotification);
+  }
+
+  // Clear the queue and add new notification
+  notificationQueue = [];
+  
   const notification = document.createElement('div');
-  notification.className = `alert alert-${type} position-fixed`;
+  notification.className = `alert alert-${type} position-fixed notification-alert`;
   notification.style.cssText = `
-    top: 120px; right: 20px; z-index: 9999; min-width: 350px;
-    backdrop-filter: blur(15px); border: 2px solid var(--primary);
-    border-radius: 15px; animation: slideInRight 0.5s ease-out;
+    top: 120px; 
+    right: 20px; 
+    z-index: 9999; 
+    min-width: 320px;
+    max-width: 400px;
+    backdrop-filter: blur(15px); 
+    border: 2px solid var(--primary);
+    border-radius: 15px; 
+    animation: slideInRight 0.5s ease-out;
     box-shadow: var(--glow-primary);
+    background: var(--bg-glass-strong);
+    color: var(--text-primary);
+    font-weight: 600;
+    padding: 1rem;
+    word-wrap: break-word;
+    transform: translateX(100%);
+    opacity: 0;
   `;
 
   const iconMap = {
     success: 'check-circle',
-    warning: 'exclamation-triangle',
+    warning: 'exclamation-triangle', 
     danger: 'exclamation-circle',
     info: 'info-circle'
   };
 
+  const colorMap = {
+    success: 'var(--accent)',
+    warning: '#ffc107',
+    danger: '#dc3545', 
+    info: 'var(--primary)'
+  };
+
   notification.innerHTML = `
     <div class="d-flex align-items-center">
-      <i class="fas fa-${iconMap[type]} me-2" style="font-size: 1.5rem;"></i>
-      <span style="font-weight: 600;">${message}</span>
-      <button type="button" class="btn-close btn-close-white ms-auto" onclick="this.parentElement.parentElement.remove()"></button>
+      <i class="fas fa-${iconMap[type]} me-2 notification-icon" style="font-size: 1.5rem; color: ${colorMap[type]}; flex-shrink: 0;"></i>
+      <span class="notification-message" style="font-weight: 600; flex: 1; line-height: 1.4;">${message}</span>
+      <button type="button" class="notification-close-btn ms-2" onclick="closeNotification(this.parentElement.parentElement)" 
+              style="background: none; border: none; color: var(--text-primary); font-size: 1.2rem; padding: 0; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: all 0.3s ease; flex-shrink: 0; cursor: pointer;"
+              onmouseover="this.style.background='rgba(255,255,255,0.1)'; this.style.transform='scale(1.1)'"
+              onmouseout="this.style.background='none'; this.style.transform='scale(1)'">
+        <i class="fas fa-times"></i>
+      </button>
     </div>
   `;
 
   document.body.appendChild(notification);
+  currentNotification = notification;
 
+  // Animate in
+  requestAnimationFrame(() => {
+    notification.style.transform = 'translateX(0)';
+    notification.style.opacity = '1';
+  });
+
+  // Auto-remove after delay
+  const autoCloseTimer = setTimeout(() => {
+    if (notification.parentElement) {
+      closeNotification(notification);
+    }
+  }, 5000);
+
+  // Store timer for potential cancellation
+  notification.autoCloseTimer = autoCloseTimer;
+
+  // Add click to close functionality
+  notification.addEventListener('click', (e) => {
+    if (e.target.closest('.notification-close-btn')) {
+      return; // Let the close button handle it
+    }
+    // Optional: close on notification body click
+    closeNotification(notification);
+  });
+}
+
+// Helper functions for different notification types
+function showSuccessNotification(message) {
+    showNotification(message, 'success');
+}
+
+function showWarningNotification(message) {
+    showNotification(message, 'warning');
+}
+
+function showErrorNotification(message) {
+    showNotification(message, 'danger');
+}
+
+function showInfoNotification(message) {
+    showNotification(message, 'info');
+}
+
+// Notification with custom duration
+function showTimedNotification(message, type = 'info', duration = 5000) {
+    // Close current notification if exists
+    if (currentNotification && currentNotification.parentElement) {
+        closeNotification(currentNotification);
+    }
+
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type} position-fixed notification-alert`;
+    notification.style.cssText = `
+        top: 120px; 
+        right: 20px; 
+        z-index: 9999; 
+        min-width: 320px;
+        max-width: 400px;
+        backdrop-filter: blur(15px); 
+        border: 2px solid var(--primary);
+        border-radius: 15px; 
+        animation: slideInRight 0.5s ease-out;
+        box-shadow: var(--glow-primary);
+        background: var(--bg-glass-strong);
+        color: var(--text-primary);
+        font-weight: 600;
+        padding: 1rem;
+        word-wrap: break-word;
+        transform: translateX(100%);
+        opacity: 0;
+    `;
+
+    const iconMap = {
+        success: 'check-circle',
+        warning: 'exclamation-triangle', 
+        danger: 'exclamation-circle',
+        info: 'info-circle'
+    };
+
+    const colorMap = {
+        success: 'var(--accent)',
+        warning: '#ffc107',
+        danger: '#dc3545', 
+        info: 'var(--primary)'
+    };
+
+    notification.innerHTML = `
+        <div class="d-flex align-items-center">
+            <i class="fas fa-${iconMap[type]} me-2 notification-icon" style="font-size: 1.5rem; color: ${colorMap[type]}; flex-shrink: 0;"></i>
+            <span class="notification-message" style="font-weight: 600; flex: 1; line-height: 1.4;">${message}</span>
+            <button type="button" class="notification-close-btn ms-2" onclick="closeNotification(this.parentElement.parentElement)" 
+                    style="background: none; border: none; color: var(--text-primary); font-size: 1.2rem; padding: 0; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: all 0.3s ease; flex-shrink: 0; cursor: pointer;"
+                    onmouseover="this.style.background='rgba(255,255,255,0.1)'; this.style.transform='scale(1.1)'"
+                    onmouseout="this.style.background='none'; this.style.transform='scale(1)'">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `;
+
+    document.body.appendChild(notification);
+    currentNotification = notification;
+
+    // Animate in
+    requestAnimationFrame(() => {
+        notification.style.transform = 'translateX(0)';
+        notification.style.opacity = '1';
+    });
+
+    // Auto-remove after custom duration
+    const autoCloseTimer = setTimeout(() => {
+        if (notification.parentElement) {
+            closeNotification(notification);
+        }
+    }, duration);
+
+    notification.autoCloseTimer = autoCloseTimer;
+}
+
+// Make helper functions globally available
+window.showSuccessNotification = showSuccessNotification;
+window.showWarningNotification = showWarningNotification;
+window.showErrorNotification = showErrorNotification;
+window.showInfoNotification = showInfoNotification;
+window.showTimedNotification = showTimedNotification;
+window.queueNotification = queueNotification;
+
+
+function closeNotification(notification) {
+  if (!notification || !notification.parentElement) return;
+
+  // Clear auto-close timer if exists
+  if (notification.autoCloseTimer) {
+    clearTimeout(notification.autoCloseTimer);
+  }
+
+  // Animate out
+  notification.style.animation = 'slideOutRight 0.5s ease-out forwards';
+  notification.style.transform = 'translateX(100%)';
+  notification.style.opacity = '0';
+
+  // Remove from DOM after animation
   setTimeout(() => {
     if (notification.parentElement) {
-      notification.style.animation = 'slideOutRight 0.5s ease-out';
-      setTimeout(() => notification.remove(), 500);
+      notification.remove();
     }
-  }, 4000);
+    
+    // Clear current notification reference
+    if (currentNotification === notification) {
+      currentNotification = null;
+    }
+
+    // Process queue if any
+    processNotificationQueue();
+  }, 500);
 }
+
+function processNotificationQueue() {
+  if (notificationQueue.length > 0 && !currentNotification) {
+    const nextNotification = notificationQueue.shift();
+    showNotification(nextNotification.message, nextNotification.type);
+  }
+}
+
+function queueNotification(message, type = 'info') {
+  if (currentNotification) {
+    notificationQueue.push({ message, type });
+  } else {
+    showNotification(message, type);
+  }
+}
+
+// Make closeNotification globally available
+window.closeNotification = closeNotification;
 
 async function populateCategoryPills() {
   const categoryContainer = document.querySelector('.category-pills');
 
   if (!categoryContainer) return;
 
-  categoryContainer.innerHTML = '<span class="category-pill"><i class="fas fa-spinner fa-spin"></i> Loading...</span>';
+  // Enhanced loading state
+  categoryContainer.innerHTML = `
+    <div class="loading-indicator" style="width: 100%; justify-content: center; padding: 1rem;">
+      <i class="fas fa-brain"></i>
+      <span>Neural network initialization...</span>
+    </div>
+  `;
 
   try {
     const genres = await fetchGenres();
@@ -456,7 +717,12 @@ async function populateCategoryPills() {
 
   } catch (error) {
     console.error('Error populating category pills:', error);
-    categoryContainer.innerHTML = '<span class="category-pill">Error loading categories</span>';
+    categoryContainer.innerHTML = `
+      <div class="loading-indicator" style="width: 100%; justify-content: center; padding: 1rem; color: var(--danger);">
+        <i class="fas fa-exclamation-triangle"></i>
+        <span>Error loading categories</span>
+      </div>
+    `;
   }
 }
 
@@ -478,132 +744,7 @@ async function createDynamicSections() {
   }
 }
 
-async function loadMoreCategories() {
-  const { allGenres, currentlyDisplayed, categoriesPerLoad } = categoriesData;
 
-  const nextBatch = allGenres.slice(currentlyDisplayed, currentlyDisplayed + categoriesPerLoad);
-
-  if (nextBatch.length === 0) {
-    const loadMoreBtn = document.getElementById('load-more-categories');
-    if (loadMoreBtn) {
-      loadMoreBtn.innerHTML = `
-        <i class="fas fa-check-circle me-2"></i>
-        All Categories Loaded
-      `;
-      loadMoreBtn.disabled = true;
-      loadMoreBtn.classList.add('btn-success');
-      loadMoreBtn.classList.remove('btn-hero');
-    }
-    return;
-  }
-
-  const loadMoreBtn = document.getElementById('load-more-categories');
-  const loadingIndicator = document.getElementById('loading-categories');
-
-  if (loadMoreBtn) {
-    loadMoreBtn.style.display = 'none';
-  }
-  if (loadingIndicator) {
-    loadingIndicator.style.display = 'block';
-  }
-
-  cleanupDuplicateSections();
-
-  nextBatch.forEach(genre => {
-    const existingSections = document.querySelectorAll(`#genre-${genre.id}`);
-    existingSections.forEach(section => section.remove());
-  });
-
-  for (const genre of nextBatch) {
-    if (document.getElementById(`genre-${genre.id}`)) {
-      console.log(`Section genre-${genre.id} already exists, skipping...`);
-      continue;
-    }
-
-    const section = document.createElement('section');
-    section.className = 'content-section';
-    section.id = `genre-${genre.id}`;
-
-    section.innerHTML = `
-      <div class="container">
-        <h2 class="section-title">
-          <i class="fas fa-${getGenreIcon(genre.name)}"></i>
-          ${genre.name} Collection
-        </h2>
-        <div class="carousel-container" data-genre="${genre.id}">
-          <button class="carousel-btn prev" data-carousel="genre-${genre.id}-carousel" data-direction="-1">
-            <i class="fas fa-chevron-left"></i>
-          </button>
-          <button class="carousel-btn next" data-carousel="genre-${genre.id}-carousel" data-direction="1">
-            <i class="fas fa-chevron-right"></i>
-          </button>
-          <div class="carousel-track" id="genre-${genre.id}-carousel">
-            <div style="padding: 2rem; text-align: center; color: var(--text-muted);">
-              <i class="fas fa-spinner fa-spin" style="font-size: 2rem;"></i>
-              <p>Loading ${genre.name} content...</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
-
-    const loadMoreCategoriesSection = document.getElementById('load-more-categories-section');
-    if (loadMoreCategoriesSection) {
-      loadMoreCategoriesSection.insertAdjacentElement('beforebegin', section);
-    } else {
-      const allGenreSections = Array.from(document.querySelectorAll('[id^="genre-"]'))
-        .filter(s => s.id.match(/^genre-\d+$/));
-
-      if (allGenreSections.length > 0) {
-        const lastSection = allGenreSections[allGenreSections.length - 1];
-        lastSection.insertAdjacentElement('afterend', section);
-      } else {
-        const categorySection = document.querySelector('.content-section');
-        if (categorySection) {
-          categorySection.insertAdjacentElement('afterend', section);
-        }
-      }
-    }
-
-    setupCarouselNavigation(section);
-  }
-
-  await populateGenreSections(nextBatch);
-
-  categoriesData.currentlyDisplayed += nextBatch.length;
-
-  if (loadingIndicator) {
-    loadingIndicator.style.display = 'none';
-  }
-
-  const remainingCategories = allGenres.length - categoriesData.currentlyDisplayed;
-
-  if (remainingCategories > 0) {
-    if (!document.getElementById('load-more-categories-section')) {
-      createLoadMoreCategoriesSection();
-    }
-
-    if (loadMoreBtn) {
-      loadMoreBtn.style.display = 'inline-block';
-      loadMoreBtn.innerHTML = `
-        <i class="fas fa-plus-circle me-2"></i>
-        Load More Categories (${remainingCategories} remaining)
-      `;
-    }
-  } else {
-    if (loadMoreBtn) {
-      loadMoreBtn.innerHTML = `
-        <i class="fas fa-check-circle me-2"></i>
-        All Categories Loaded
-      `;
-      loadMoreBtn.disabled = true;
-      loadMoreBtn.classList.add('btn-success');
-      loadMoreBtn.classList.remove('btn-hero');
-    }
-  }
-
-  showNotification(`Loaded ${nextBatch.length} new categories`, 'success');
-}
 
 function setupCarouselNavigation(section) {
   const prevBtn = section.querySelector('.carousel-btn.prev');
@@ -630,39 +771,7 @@ function setupCarouselNavigation(section) {
   }
 }
 
-async function populateGenreSections(genres) {
-  const allContent = [...moviesData.trending, ...moviesData.movies, ...moviesData.series];
 
-  for (const genre of genres) {
-    try {
-      let genreContent = allContent.filter(item =>
-        item.genre_ids && Array.isArray(item.genre_ids) && item.genre_ids.includes(genre.id)
-      );
-
-      const apiContent = await fetchContentByGenre(genre.id, 1);
-      genreContent = [...genreContent, ...apiContent];
-
-      const uniqueContent = genreContent.filter((item, index, self) =>
-        index === self.findIndex(t => t.id === item.id)
-      );
-
-      const finalContent = uniqueContent.slice(0, 20);
-      populateCarousel(`genre-${genre.id}-carousel`, finalContent);
-
-    } catch (error) {
-      console.error(`Error populating ${genre.name}:`, error);
-      const carousel = document.getElementById(`genre-${genre.id}-carousel`);
-      if (carousel) {
-        carousel.innerHTML = `
-          <div style="padding: 2rem; text-align: center; color: var(--text-muted);">
-            <i class="fas fa-exclamation-triangle" style="font-size: 2rem; color: var(--warning);"></i>
-            <p>Error loading ${genre.name} content</p>
-          </div>
-        `;
-      }
-    }
-  }
-}
 
 function createLoadMoreCategoriesSection() {
   const watchlistSection = document.getElementById('watchlist');
@@ -809,73 +918,389 @@ function showAllSections() {
   }
 }
 
-function displaySearchResults(results, query) {
+// Enhanced loading functions
+function showCarouselLoading(carouselId, message = 'Loading content...') {
+  const carousel = document.getElementById(carouselId);
+  if (!carousel) return;
+
+  carousel.innerHTML = `
+    <div class="loading">
+      <i class="fas fa-spinner"></i>
+      <p>${message}</p>
+    </div>
+  `;
+}
+
+function showGenreLoading(sectionId, genreName) {
+  const section = document.getElementById(sectionId);
+  if (!section) return;
+
+  const carousel = section.querySelector('.carousel-track');
+  if (carousel) {
+    carousel.innerHTML = `
+      <div class="genre-loading">
+        <i class="fas fa-film"></i>
+        <p>Loading ${genreName} collection...</p>
+        <div class="dots-container">
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+        </div>
+      </div>
+    `;
+  }
+}
+
+// Update the populateCarousel function
+function populateCarousel(carouselId, content, genreName = '') {
+  const carousel = document.getElementById(carouselId);
+
+  if (!carousel) {
+    console.error(`Carousel element ${carouselId} not found`);
+    return;
+  }
+
+  // Clear existing content
+  carousel.innerHTML = '';
+
+  if (content.length === 0) {
+    carousel.innerHTML = `
+      <div class="loading">
+        <i class="fas fa-exclamation-triangle" style="color: var(--warning); animation: none;"></i>
+        <p style="color: var(--text-muted);">No ${genreName} content available</p>
+      </div>
+    `;
+    return;
+  }
+
+  // Add movie cards
+  content.forEach((item) => {
+    const card = createMovieCard(item);
+    if (card) {
+      carousel.appendChild(card);
+    }
+  });
+}
+
+// Update populateGenreSections function
+async function populateGenreSections(genres) {
+  const allContent = [...moviesData.trending, ...moviesData.movies, ...moviesData.series];
+
+  for (const genre of genres) {
+    try {
+      // Show loading for this specific genre
+      showGenreLoading(`genre-${genre.id}`, genre.name);
+
+      let genreContent = allContent.filter(item =>
+        item.genre_ids && Array.isArray(item.genre_ids) && item.genre_ids.includes(genre.id)
+      );
+
+      // Fetch additional content from API
+      const apiContent = await fetchContentByGenre(genre.id, 1);
+      genreContent = [...genreContent, ...apiContent];
+
+      const uniqueContent = genreContent.filter((item, index, self) =>
+        index === self.findIndex(t => t.id === item.id)
+      );
+
+      const finalContent = uniqueContent.slice(0, 20);
+      
+      // Populate with actual content
+      populateCarousel(`genre-${genre.id}-carousel`, finalContent, genre.name);
+
+    } catch (error) {
+      console.error(`Error populating ${genre.name}:`, error);
+      const carousel = document.getElementById(`genre-${genre.id}-carousel`);
+      if (carousel) {
+        carousel.innerHTML = `
+          <div class="loading">
+            <i class="fas fa-exclamation-triangle" style="color: var(--danger); animation: none;"></i>
+            <p style="color: var(--text-muted);">Error loading ${genre.name} content</p>
+            <button class="btn btn-outline-primary btn-sm mt-2" onclick="retryGenreLoad('${genre.id}', '${genre.name}')">
+              <i class="fas fa-redo me-1"></i>Retry
+            </button>
+          </div>
+        `;
+      }
+    }
+  }
+}
+
+// Add retry function
+window.retryGenreLoad = async function(genreId, genreName) {
+  try {
+    showGenreLoading(`genre-${genreId}`, genreName);
+    const content = await fetchContentByGenre(genreId, 1);
+    populateCarousel(`genre-${genreId}-carousel`, content, genreName);
+    showNotification(`Successfully loaded ${genreName} content`, 'success');
+  } catch (error) {
+    console.error(`Retry failed for ${genreName}:`, error);
+    showNotification(`Failed to load ${genreName} content`, 'danger');
+  }
+};
+
+// Update loadMoreCategories function with better loading indication
+async function loadMoreCategories() {
+  const { allGenres, currentlyDisplayed, categoriesPerLoad } = categoriesData;
+
+  const nextBatch = allGenres.slice(currentlyDisplayed, currentlyDisplayed + categoriesPerLoad);
+
+  if (nextBatch.length === 0) {
+    const loadMoreBtn = document.getElementById('load-more-categories');
+    if (loadMoreBtn) {
+      loadMoreBtn.innerHTML = `
+        <i class="fas fa-check-circle me-2"></i>
+        All Categories Loaded
+      `;
+      loadMoreBtn.disabled = true;
+      loadMoreBtn.classList.add('btn-success');
+      loadMoreBtn.classList.remove('btn-hero');
+    }
+    return;
+  }
+
+  const loadMoreBtn = document.getElementById('load-more-categories');
+  const loadingIndicator = document.getElementById('loading-categories');
+
+  if (loadMoreBtn) {
+    loadMoreBtn.style.display = 'none';
+  }
+  if (loadingIndicator) {
+    loadingIndicator.style.display = 'flex';
+    loadingIndicator.innerHTML = `
+      <div class="loading-indicator">
+        <i class="fas fa-spinner me-2"></i>
+        Loading ${nextBatch.length} new categories...
+      </div>
+    `;
+  }
+
+  cleanupDuplicateSections();
+
+  // Remove existing sections for the new batch
+  nextBatch.forEach(genre => {
+    const existingSections = document.querySelectorAll(`#genre-${genre.id}`);
+    existingSections.forEach(section => section.remove());
+  });
+
+  // Create sections with loading state
+  for (const genre of nextBatch) {
+    if (document.getElementById(`genre-${genre.id}`)) {
+      console.log(`Section genre-${genre.id} already exists, skipping...`);
+      continue;
+    }
+
+    const section = document.createElement('section');
+    section.className = 'content-section';
+    section.id = `genre-${genre.id}`;
+
+    section.innerHTML = `
+      <div class="container">
+        <h2 class="section-title">
+          <i class="fas fa-${getGenreIcon(genre.name)}"></i>
+          ${genre.name} Collection
+        </h2>
+        <div class="carousel-container" data-genre="${genre.id}">
+          <button class="carousel-btn prev" data-carousel="genre-${genre.id}-carousel" data-direction="-1">
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          <button class="carousel-btn next" data-carousel="genre-${genre.id}-carousel" data-direction="1">
+            <i class="fas fa-chevron-right"></i>
+          </button>
+          <div class="carousel-track" id="genre-${genre.id}-carousel">
+            <div class="genre-loading">
+              <i class="fas fa-film"></i>
+              <p>Initializing ${genre.name} neural network...</p>
+              <div class="dots-container">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const loadMoreCategoriesSection = document.getElementById('load-more-categories-section');
+    if (loadMoreCategoriesSection) {
+      loadMoreCategoriesSection.insertAdjacentElement('beforebegin', section);
+    } else {
+      const allGenreSections = Array.from(document.querySelectorAll('[id^="genre-"]'))
+        .filter(s => s.id.match(/^genre-\d+$/));
+
+      if (allGenreSections.length > 0) {
+        const lastSection = allGenreSections[allGenreSections.length - 1];
+        lastSection.insertAdjacentElement('afterend', section);
+      } else {
+        const categorySection = document.querySelector('.content-section');
+        if (categorySection) {
+          categorySection.insertAdjacentElement('afterend', section);
+        }
+      }
+    }
+
+    setupCarouselNavigation(section);
+  }
+
+  // Populate the sections with actual content
+  await populateGenreSections(nextBatch);
+
+  categoriesData.currentlyDisplayed += nextBatch.length;
+
+  if (loadingIndicator) {
+    loadingIndicator.style.display = 'none';
+  }
+
+  const remainingCategories = allGenres.length - categoriesData.currentlyDisplayed;
+
+  if (remainingCategories > 0) {
+    if (!document.getElementById('load-more-categories-section')) {
+      createLoadMoreCategoriesSection();
+    }
+
+    if (loadMoreBtn) {
+      loadMoreBtn.style.display = 'inline-block';
+      loadMoreBtn.innerHTML = `
+        <i class="fas fa-plus-circle me-2"></i>
+        Load More Categories (${remainingCategories} remaining)
+      `;
+    }
+  } else {
+    if (loadMoreBtn) {
+      loadMoreBtn.innerHTML = `
+        <i class="fas fa-check-circle me-2"></i>
+        All Categories Loaded
+      `;
+      loadMoreBtn.disabled = true;
+      loadMoreBtn.classList.add('btn-success');
+      loadMoreBtn.classList.remove('btn-hero');
+    }
+  }
+
+  showNotification(`Successfully loaded ${nextBatch.length} new categories`, 'success');
+}
+
+// Update the search loading as well
+function performSearch(query) {
+  if (!query) {
+    showAllSections();
+    return;
+  }
+
+  // Show search loading
+  displaySearchResults([], query, true); // Pass true for loading state
+
+  const allContent = [...moviesData.trending, ...moviesData.movies, ...moviesData.series];
+
+  const results = allContent.filter(item =>
+    item.title.toLowerCase().includes(query) ||
+    item.genre.toLowerCase().includes(query) ||
+    item.overview.toLowerCase().includes(query)
+  );
+
+  const dynamicContent = searchInAllDynamicSections(query);
+  const combinedResults = [...results, ...dynamicContent];
+  const uniqueResults = combinedResults.filter((item, index, self) =>
+    index === self.findIndex(t => t.id === item.id)
+  );
+
+  // Update with actual results
+  setTimeout(() => {
+    displaySearchResults(uniqueResults, query);
+    showNotification(
+      uniqueResults.length > 0
+        ? `Found ${uniqueResults.length} neural matches for "${query}"`
+        : `No content found for "${query}"`,
+      uniqueResults.length > 0 ? 'success' : 'warning'
+    );
+  }, 500); // Small delay to show loading
+}
+
+// Update displaySearchResults to handle loading state
+function displaySearchResults(results, query, isLoading = false) {
   const searchSection = createSearchResultsSection();
   const resultsGrid = document.getElementById('search-results-grid');
   const sectionTitle = searchSection.querySelector('.section-title');
 
   if (sectionTitle) {
-    sectionTitle.innerHTML = `
-      <i class="fas fa-search"></i>
-      Search Results for "${query}" (${results.length} found)
-    `;
+    if (isLoading) {
+      sectionTitle.innerHTML = `
+        <i class="fas fa-search"></i>
+        Searching for "${query}"...
+      `;
+    } else {
+      sectionTitle.innerHTML = `
+        <i class="fas fa-search"></i>
+        Search Results for "${query}" (${results.length} found)
+      `;
+    }
   }
 
   if (resultsGrid) {
-    resultsGrid.innerHTML = '';
-
-    if (results.length === 0) {
+    if (isLoading) {
       resultsGrid.innerHTML = `
-        <div style="padding: 4rem; text-align: center; color: var(--text-muted); grid-column: 1 / -1;">
-          <i class="fas fa-search" style="font-size: 4rem; margin-bottom: 2rem; opacity: 0.5;"></i>
-          <h3>No results found</h3>
-          <p>Try searching with different keywords</p>
+        <div class="loading" style="grid-column: 1 / -1;">
+          <i class="fas fa-search"></i>
+          <p>Searching the neural network...</p>
         </div>
       `;
     } else {
-      const initialResults = results.slice(0, 20);
-      let remainingResults = results.slice(20);
+      resultsGrid.innerHTML = '';
 
-      initialResults.forEach(item => {
-        const card = createMovieCard(item);
-        card.classList.add('search-result-card');
-        resultsGrid.appendChild(card);
-      });
-
-      if (remainingResults.length > 0) {
-        const loadMoreContainer = document.createElement('div');
-        loadMoreContainer.className = 'text-center mt-4';
-        loadMoreContainer.style.gridColumn = '1 / -1';
-
-        const loadMoreBtn = document.createElement('button');
-        loadMoreBtn.className = 'btn btn-outline-primary';
-        loadMoreBtn.innerHTML = `
-          <i class="fas fa-plus-circle me-2"></i>
-          Load More Results (${remainingResults.length} remaining)
+      if (results.length === 0) {
+        resultsGrid.innerHTML = `
+          <div class="loading" style="grid-column: 1 / -1;">
+            <i class="fas fa-search" style="color: var(--warning); animation: none;"></i>
+            <p>No results found for "${query}"</p>
+            <small style="color: var(--text-muted);">Try searching with different keywords</small>
+          </div>
         `;
+      } else {
+        const initialResults = results.slice(0, 20);
+        let remainingResults = results.slice(20);
 
-        loadMoreBtn.onclick = () => {
-          const nextBatch = remainingResults.slice(0, 20);
-          remainingResults = remainingResults.slice(20);
+        initialResults.forEach(item => {
+          const card = createMovieCard(item);
+          card.classList.add('search-result-card');
+          resultsGrid.appendChild(card);
+        });
 
-          nextBatch.forEach(item => {
-            const card = createMovieCard(item);
-            card.classList.add('search-result-card');
-            resultsGrid.insertBefore(card, loadMoreContainer);
-          });
+        if (remainingResults.length > 0) {
+          const loadMoreContainer = document.createElement('div');
+          loadMoreContainer.className = 'text-center mt-4';
+          loadMoreContainer.style.gridColumn = '1 / -1';
 
-          if (remainingResults.length > 0) {
-            loadMoreBtn.innerHTML = `
-              <i class="fas fa-plus-circle me-2"></i>
-              Load More Results (${remainingResults.length} remaining)
-            `;
-          } else {
-            loadMoreContainer.remove();
-          }
-        };
+          const loadMoreBtn = document.createElement('button');
+          loadMoreBtn.className = 'btn btn-outline-primary';
+          loadMoreBtn.innerHTML = `
+            <i class="fas fa-plus-circle me-2"></i>
+            Load More Results (${remainingResults.length} remaining)
+          `;
 
-        loadMoreContainer.appendChild(loadMoreBtn);
-        resultsGrid.appendChild(loadMoreContainer);
+          loadMoreBtn.onclick = () => {
+            const nextBatch = remainingResults.slice(0, 20);
+            remainingResults = remainingResults.slice(20);
+
+            nextBatch.forEach(item => {
+              const card = createMovieCard(item);
+              card.classList.add('search-result-card');
+              resultsGrid.insertBefore(card, loadMoreContainer);
+            });
+
+            if (remainingResults.length > 0) {
+              loadMoreBtn.innerHTML = `
+                <i class="fas fa-plus-circle me-2"></i>
+                Load More Results (${remainingResults.length} remaining)
+              `;
+            } else {
+              loadMoreContainer.remove();
+            }
+          };
+
+          loadMoreContainer.appendChild(loadMoreBtn);
+          resultsGrid.appendChild(loadMoreContainer);
+        }
       }
     }
   }
@@ -883,6 +1308,7 @@ function displaySearchResults(results, query) {
   searchSection.style.display = 'block';
   hideAllSections();
 }
+
 // Add this function to your main.js file and call it from initializeNeuroFlix()
 
 function fixModalAccessibility() {
@@ -1031,6 +1457,8 @@ function initializeNeuroLogo() {
 
   drawNeural();
 }
+
+
 
 // Update your initializeNeuroFlix function to include this
 function initializeNeuroFlix() {

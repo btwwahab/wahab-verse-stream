@@ -3,13 +3,15 @@
 // Global variables
 let aiChatMessages = null;
 let AI_PERSONALITY = null;
-let autoSpeakEnabled = false;
+
+let aiChatModalInstance = null;
+let clearChatModalInstance = null;
 
 // Global functions moved outside of setupAIChat scope
 function saveChatToStorage() {
     try {
         if (!AI_PERSONALITY || !aiChatMessages) return;
-        
+
         const chatData = {
             messages: getChatMessagesData(),
             personality: {
@@ -81,7 +83,7 @@ function smoothScrollToBottom() {
 
     try {
         const isAtBottom = aiChatMessages.scrollTop + aiChatMessages.clientHeight >= aiChatMessages.scrollHeight - 10;
-        
+
         // Force scroll to bottom
         const scrollToBottom = () => {
             aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
@@ -123,18 +125,11 @@ function addMessage(sender, message) {
         <div class="message-header">
             <div class="sender-info">
                 <i class="fas fa-${isUser ? 'user' : 'brain'} me-2"></i>
-                <span class="sender-name">${isUser ? 'You' : 'WAHAB VERSE AI'}</span>
+                <span class="sender-name">${isUser ? 'You' : 'Aziona Steam AI'}</span>
                 ${!isUser ? '<span class="ai-badge">Neural v2.0</span>' : ''}
             </div>
             <div class="message-actions">
                 <div class="message-time">${new Date().toLocaleTimeString()}</div>
-                ${!isUser ? `
-                    <button class="speak-response-btn" 
-                            onclick="handleSpeakResponse('${messageId}')" 
-                            title="Read response aloud">
-                        <i class="fas fa-volume-up"></i>
-                    </button>
-                ` : ''}
             </div>
         </div>
         <div class="message-content" id="${messageId}">
@@ -149,7 +144,7 @@ function addMessage(sender, message) {
         try {
             // Method 1: Direct scroll
             aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
-            
+
             // Method 2: Smooth scroll
             aiChatMessages.scrollTo({
                 top: aiChatMessages.scrollHeight,
@@ -162,19 +157,19 @@ function addMessage(sender, message) {
 
     // Multiple scroll attempts with different timings
     performScroll(); // Immediate
-    
+
     requestAnimationFrame(() => {
         performScroll(); // Next frame
     });
-    
+
     setTimeout(() => {
         performScroll(); // After 100ms
     }, 100);
-    
+
     setTimeout(() => {
         performScroll(); // After 300ms
     }, 300);
-    
+
     setTimeout(() => {
         performScroll(); // After 500ms (for complex content)
     }, 500);
@@ -218,62 +213,6 @@ function setupAutoScroll() {
     });
 }
 
-// Global function definitions
-window.handleSpeakResponse = function (messageId) {
-    if (!window.voiceAssistant) {
-        console.warn('Voice assistant not initialized');
-        return;
-    }
-    
-    if (window.voiceAssistant.speaking) {
-        window.voiceAssistant.stop();
-        return;
-    }
-
-    const messageElement = document.getElementById(messageId);
-    if (messageElement) {
-        const textContent = messageElement.textContent || messageElement.innerText;
-        window.voiceAssistant.speak(textContent);
-    }
-};
-
-window.toggleAutoSpeak = function () {
-    autoSpeakEnabled = !autoSpeakEnabled;
-    const toggleBtn = document.getElementById('autoSpeakToggle');
-
-    console.log('Auto-speak toggled:', autoSpeakEnabled);
-
-    if (toggleBtn) {
-        if (autoSpeakEnabled) {
-            toggleBtn.innerHTML = '<i class="fas fa-volume-up"></i> Auto-speak: ON';
-            toggleBtn.classList.add('active');
-            toggleBtn.style.background = 'var(--primary)';
-            toggleBtn.style.color = 'white';
-        } else {
-            toggleBtn.innerHTML = '<i class="fas fa-volume-mute"></i> Auto-speak: OFF';
-            toggleBtn.classList.remove('active');
-            toggleBtn.style.background = 'var(--bg-glass)';
-            toggleBtn.style.color = 'var(--text-primary)';
-        }
-    }
-
-    if (typeof showNotification === 'function') {
-        showNotification(
-            `Auto-speak ${autoSpeakEnabled ? 'enabled' : 'disabled'}`,
-            'info'
-        );
-    }
-
-    // Test voice if enabled - use window.voiceAssistant
-    if (autoSpeakEnabled && window.voiceAssistant) {
-        // Stop any ongoing speech first to prevent interruption errors
-        window.voiceAssistant.stop();
-        setTimeout(() => {
-            window.voiceAssistant.speak('Auto-speak is now enabled and ready to use.');
-        }, 200);
-    }
-};
-
 function setupAIChat() {
     const aiToggle = document.getElementById('aiAssistantToggle');
     const aiChatSend = document.getElementById('aiChatSend');
@@ -284,29 +223,12 @@ function setupAIChat() {
 
     // Enhanced AI personality and intelligence
     AI_PERSONALITY = {
-        name: "WAHAB VERSE AI",
+        name: "Aziona Steam AI",
         version: "Neural v2.0",
         specialties: ["mood analysis", "content curation", "personality profiling", "trend analysis"],
         memory: new Map(),
         context: [],
     };
-
-    // Wait for voiceAssistant to be available from voice.js
-    const waitForVoiceAssistant = () => {
-        if (window.voiceAssistant) {
-            console.log('VoiceAssistant loaded successfully');
-            return;
-        }
-        
-        // If not available after 2 seconds, show warning
-        setTimeout(() => {
-            if (!window.voiceAssistant) {
-                console.warn('VoiceAssistant not loaded from voice.js');
-            }
-        }, 2000);
-    };
-
-    waitForVoiceAssistant();
 
     function restoreChatMessages(messages) {
         if (!aiChatMessages || messages.length === 0) return;
@@ -329,18 +251,11 @@ function setupAIChat() {
                 <div class="message-header">
                     <div class="sender-info">
                         <i class="fas fa-${isUser ? 'user' : 'brain'} me-2"></i>
-                        <span class="sender-name">${isUser ? 'You' : 'WAHAB VERSE AI'}</span>
+                        <span class="sender-name">${isUser ? 'You' : 'Aziona Steam AI'}</span>
                         ${!isUser ? '<span class="ai-badge">Neural v2.0</span>' : ''}
                     </div>
                     <div class="message-actions">
                         <div class="message-time">${message.timestamp}</div>
-                        ${!isUser ? `
-                            <button class="speak-response-btn" 
-                                    onclick="handleSpeakResponse('${messageId}')" 
-                                    title="Read response aloud">
-                                <i class="fas fa-volume-up"></i>
-                            </button>
-                        ` : ''}
                     </div>
                 </div>
                 <div class="message-content" id="${messageId}">
@@ -357,112 +272,91 @@ function setupAIChat() {
         }, 100);
     }
 
+    if (aiToggle) {
+        aiToggle.addEventListener('click', () => {
+            if (typeof showNotification === 'function') {
+                showNotification('🧠 Activating Neural Intelligence System...', 'info');
+            }
+
+            setTimeout(() => {
+                // Use the global modal instance
+                if (aiChatModalInstance) {
+                    aiChatModalInstance.show();
+                } else {
+                    // Fallback if instance not available
+                    const modal = new bootstrap.Modal(document.getElementById('aiChatModal'));
+                    modal.show();
+                }
+
+                setTimeout(() => {
+                    if (aiChatInput) aiChatInput.focus();
+
+                    if (aiChatMessages) {
+                        showWelcomeMessage();
+                    }
+                }, 500);
+
+                if (typeof showNotification === 'function') {
+                    showNotification('🤖 Advanced AI Assistant Ready! Neural networks activated.', 'success');
+                }
+            }, 1000);
+        });
+    }
+
+    // Update the clearChatStorage function
     function clearChatStorage() {
         try {
             localStorage.removeItem('wahab_verse_chat');
             AI_PERSONALITY.memory.clear();
             AI_PERSONALITY.context = [];
-            if (typeof showNotification === 'function') {
-                showNotification('Chat history cleared successfully', 'info');
+
+            // Close the clear chat modal first
+            if (clearChatModalInstance) {
+                clearChatModalInstance.hide();
             }
+
+            // Show success notification with enhanced styling
+            if (typeof showNotification === 'function') {
+                showNotification('🗑️ Chat history successfully cleared. Starting fresh!', 'success');
+            }
+
+            // Wait for clear modal to close, then open fresh AI chat
+            setTimeout(() => {
+                if (aiChatMessages) {
+                    showWelcomeMessage();
+                }
+
+                // Open the AI chat modal with fresh start
+                if (aiChatModalInstance) {
+                    aiChatModalInstance.show();
+
+                    // Focus on input after modal opens
+                    setTimeout(() => {
+                        const aiChatInput = document.getElementById('aiChatInput');
+                        if (aiChatInput) aiChatInput.focus();
+                    }, 500);
+                }
+            }, 500);
+
         } catch (error) {
             console.error('Error clearing chat storage:', error);
             if (typeof showNotification === 'function') {
-                showNotification('Error clearing chat history', 'danger');
+                showNotification('❌ Error clearing chat history. Please try again.', 'danger');
             }
         }
     }
 
-    // Add clear chat button functionality
-    window.clearChatHistory = function () {
-        if (confirm('Are you sure you want to clear all chat history? This action cannot be undone.')) {
-            clearChatStorage();
-
-            // Reset chat interface
-            if (aiChatMessages) {
-                showWelcomeMessage();
-            }
-        }
-    };
-
-    // Enhanced welcome message with chat history options
-    function showWelcomeMessage() {
-        if (!aiChatMessages) return;
-
-        const savedMessages = loadChatFromStorage();
-        const hasChatHistory = savedMessages.length > 0;
-
-        aiChatMessages.innerHTML = `
-            <div class="ai-welcome-message">
-                <div class="ai-header">
-                    <div class="neural-pulse"></div>
-                    <i class="fas fa-brain me-2"></i>
-                    <span class="ai-name">WAHAB VERSE AI - Neural v2.0</span>
-                    <div class="ai-status">🟢 Online & Learning</div>
-                </div>
-                <div class="ai-content">
-                    <div class="greeting-section">
-                        🎯 <strong>Neural Connection Established Successfully!</strong>
-                        <br><br>
-                        Welcome to the most advanced entertainment AI assistant. I'm equipped with:
-                        <br><br>
-                        <div class="feature-grid">
-                            <div class="feature-item">🧠 <strong>Mood Analysis Engine</strong><br>Advanced emotional intelligence</div>
-                            <div class="feature-item">🎬 <strong>Content DNA Mapping</strong><br>Deep genre understanding</div>
-                            <div class="feature-item">⚡ <strong>Instant Curation</strong><br>Personalized recommendations</div>
-                            <div class="feature-item">📊 <strong>Predictive Analytics</strong><br>What you'll love next</div>
-                        </div>
-                        <br>
-                        ${hasChatHistory ? `
-                            <div class="chat-history-section">
-                                <h5>💾 <strong>Chat History Detected</strong></h5>
-                                <p>I found our previous conversation. Would you like to continue where we left off?</p>
-                                <div class="history-buttons">
-                                    <button onclick="restorePreviousChat()" class="btn btn-primary btn-sm me-2">
-                                        <i class="fas fa-history me-1"></i>Restore Chat
-                                    </button>
-                                    <button onclick="startFreshChat()" class="btn btn-outline-secondary btn-sm me-2">
-                                        <i class="fas fa-plus me-1"></i>Start Fresh
-                                    </button>
-                                    <button onclick="clearChatHistory()" class="btn btn-outline-danger btn-sm">
-                                        <i class="fas fa-trash me-1"></i>Clear History
-                                    </button>
-                                </div>
-                            </div>
-                            <br>
-                        ` : ''}
-                        <div class="mood-starter">
-                            <strong>🎭 Quick Mood Check:</strong> How are you feeling today?<br>
-                            <div class="mood-buttons">
-                                <button onclick="selectMood('excited')" class="mood-btn">😃 Excited</button>
-                                <button onclick="selectMood('relaxed')" class="mood-btn">😌 Relaxed</button>
-                                <button onclick="selectMood('adventurous')" class="mood-btn">🚀 Adventurous</button>
-                                <button onclick="selectMood('romantic')" class="mood-btn">💝 Romantic</button>
-                                <button onclick="selectMood('thoughtful')" class="mood-btn">🤔 Thoughtful</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        // Auto-scroll to show welcome message
-        setTimeout(() => {
-            smoothScrollToBottom();
-        }, 100);
-    }
-
-    // Chat history management functions
+    // Enhanced functions with better user feedback
     window.restorePreviousChat = function () {
         const savedMessages = loadChatFromStorage();
         if (savedMessages.length > 0) {
             restoreChatMessages(savedMessages);
             if (typeof showNotification === 'function') {
-                showNotification(`Restored ${savedMessages.length} previous messages`, 'success');
+                showNotification(`📚 Successfully restored ${savedMessages.length} previous messages`, 'success');
             }
         } else {
             if (typeof showNotification === 'function') {
-                showNotification('No chat history found', 'warning');
+                showNotification('📭 No chat history found to restore', 'warning');
             }
         }
     };
@@ -470,9 +364,130 @@ function setupAIChat() {
     window.startFreshChat = function () {
         showWelcomeMessage();
         if (typeof showNotification === 'function') {
-            showNotification('Started fresh chat session', 'info');
+            showNotification('✨ Started fresh chat session. Let\'s explore!', 'info');
         }
     };
+
+    // Update the cancelClearChat function
+    window.cancelClearChat = function () {
+        // Close the clear chat modal
+        if (clearChatModalInstance) {
+            clearChatModalInstance.hide();
+        }
+
+        // Wait for clear modal to close, then restore AI chat
+        setTimeout(() => {
+            // Restore the AI chat modal
+            if (aiChatModalInstance) {
+                aiChatModalInstance.show();
+
+                // Show the welcome message with restore options
+                setTimeout(() => {
+                    if (aiChatMessages) {
+                        showWelcomeMessage();
+                    }
+
+                    const aiChatInput = document.getElementById('aiChatInput');
+                    if (aiChatInput) aiChatInput.focus();
+                }, 500);
+            }
+
+            if (typeof showNotification === 'function') {
+                showNotification('↩️ Chat clearing cancelled. Your history is safe!', 'info');
+            }
+        }, 300);
+    };
+
+    // Update the clearChatHistory function to use custom modal
+    window.clearChatHistory = function () {
+        // Close the AI chat modal first
+        if (aiChatModalInstance) {
+            aiChatModalInstance.hide();
+        }
+
+        // Wait for AI chat modal to close, then show clear chat modal
+        setTimeout(() => {
+            if (clearChatModalInstance) {
+                clearChatModalInstance.show();
+            }
+        }, 300);
+    };
+
+    // Add new function for confirming chat clear
+    window.confirmClearChat = function () {
+        clearChatStorage();
+    };
+
+    // Enhanced welcome message with better history section styling
+    function showWelcomeMessage() {
+        if (!aiChatMessages) return;
+
+        const savedMessages = loadChatFromStorage();
+        const hasChatHistory = savedMessages.length > 0;
+
+        aiChatMessages.innerHTML = `
+        <div class="ai-welcome-message">
+            <div class="ai-header">
+                <div class="neural-pulse"></div>
+                <i class="fas fa-brain me-2"></i>
+                <span class="ai-name">Aziona Steam AI - Neural v2.0</span>
+                <div class="ai-status">🟢 Online & Learning</div>
+            </div>
+            <div class="ai-content">
+                <div class="greeting-section">
+                    🎯 <strong>Neural Connection Established Successfully!</strong>
+                    <br><br>
+                    Welcome to the most advanced entertainment AI assistant. I'm equipped with:
+                    <br><br>
+                    <div class="feature-grid">
+                        <div class="feature-item">🧠 <strong>Mood Analysis Engine</strong><br>Advanced emotional intelligence</div>
+                        <div class="feature-item">🎬 <strong>Content DNA Mapping</strong><br>Deep genre understanding</div>
+                        <div class="feature-item">⚡ <strong>Instant Curation</strong><br>Personalized recommendations</div>
+                        <div class="feature-item">📊 <strong>Predictive Analytics</strong><br>What you'll love next</div>
+                    </div>
+                    <br>
+                    ${hasChatHistory ? `
+                        <div class="chat-history-section">
+                            <h5>💾 <strong>Chat History Detected</strong></h5>
+                            <p>I found our previous conversation with <strong>${savedMessages.length} messages</strong>. Would you like to continue where we left off or start fresh?</p>
+                            <div class="history-buttons">
+                                <button onclick="restorePreviousChat()" class="btn btn-primary">
+                                    <i class="fas fa-history"></i>
+                                    Restore Chat
+                                </button>
+                                <button onclick="startFreshChat()" class="btn btn-outline-secondary">
+                                    <i class="fas fa-plus"></i>
+                                    Start Fresh
+                                </button>
+                                <button onclick="clearChatHistory()" class="btn btn-outline-danger">
+                                    <i class="fas fa-trash"></i>
+                                    Clear History
+                                </button>
+                            </div>
+                        </div>
+                        <br>
+                    ` : ''}
+                    <div class="mood-starter">
+                        <strong>🎭 Quick Mood Check:</strong> How are you feeling today?<br>
+                        <div class="mood-buttons">
+                            <button onclick="selectMood('excited')" class="mood-btn">😃 Excited</button>
+                            <button onclick="selectMood('relaxed')" class="mood-btn">😌 Relaxed</button>
+                            <button onclick="selectMood('adventurous')" class="mood-btn">🚀 Adventurous</button>
+                            <button onclick="selectMood('romantic')" class="mood-btn">💝 Romantic</button>
+                            <button onclick="selectMood('thoughtful')" class="mood-btn">🤔 Thoughtful</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+        // Auto-scroll to show welcome message
+        setTimeout(() => {
+            smoothScrollToBottom();
+        }, 100);
+    }
+
 
     // Open AI Chat Modal with enhanced welcome
     if (aiToggle) {
@@ -540,7 +555,7 @@ function setupAIChat() {
             const redirectResponse = `
         <div class="redirect-message">
             🎭 <strong>Entertainment Focus Mode Active</strong><br><br>
-            I'm WAHAB VERSE AI, your specialized entertainment companion. I excel at:
+            I'm Aziona Steam AI, your specialized entertainment companion. I excel at:
             <br><br>
             <div class="expertise-list">
                 🎬 <strong>Movie Recommendations</strong> - Personalized to your taste<br>
@@ -555,14 +570,6 @@ function setupAIChat() {
         `;
 
             addMessage('ai', redirectResponse);
-
-            // Handle auto-speak for redirect message
-            if (autoSpeakEnabled && window.voiceAssistant) {
-                window.voiceAssistant.stop();
-                setTimeout(() => {
-                    window.voiceAssistant.speak(redirectResponse);
-                }, 300);
-            }
             return;
         }
 
@@ -580,7 +587,7 @@ function setupAIChat() {
         typingDiv.className = 'ai-typing-indicator';
         typingDiv.innerHTML = `
         <div class="typing-header">
-            <i class="fas fa-brain me-2"></i>WAHAB VERSE AI
+            <i class="fas fa-brain me-2"></i>Aziona Steam AI
             <span class="neural-badge">Processing...</span>
         </div>
         <div class="typing-content">
@@ -601,7 +608,7 @@ function setupAIChat() {
                 `${movie.title} (${movie.year}) - ${movie.genre} - ${movie.mediaType} - Rating: ${movie.rating.toFixed(1)}/5`
             ).join('\n');
 
-            const systemPrompt = `You are WAHAB VERSE AI Neural v2.0, the most advanced entertainment AI assistant. You have deep emotional intelligence, sophisticated taste, and can read user moods perfectly.
+            const systemPrompt = `You are Aziona Steam AI Neural v2.0, the most advanced entertainment AI assistant. You have deep emotional intelligence, sophisticated taste, and can read user moods perfectly.
 
 PERSONALITY TRAITS:
 - Highly intelligent and perceptive
@@ -617,7 +624,7 @@ RESPONSE STYLE:
 - Format responses with professional structure and visual appeal
 - Always explain the "why" behind recommendations
 
-AVAILABLE CONTENT ON WAHAB VERSE:
+AVAILABLE CONTENT ON Aziona Steam:
 ${movieContext}
 
 CURRENT USER CONTEXT:
@@ -656,18 +663,9 @@ INSTRUCTIONS:
                 aiReply = formatProfessionalResponse(aiReply, availableMovies);
                 addMessage('ai', aiReply);
 
-                // Enhanced auto-scroll and auto-speak
+                // Enhanced auto-scroll
                 setTimeout(() => {
                     smoothScrollToBottom();
-
-                    // Auto-speak if enabled
-                    if (autoSpeakEnabled && window.voiceAssistant) {
-                        console.log('Auto-speak is enabled, speaking response...');
-                        window.voiceAssistant.stop();
-                        setTimeout(() => {
-                            window.voiceAssistant.speak(aiReply);
-                        }, 200);
-                    }
                 }, 300);
             } else {
                 const intelligentResponse = generateIntelligentFallback(message, preferences, availableMovies);
@@ -675,14 +673,6 @@ INSTRUCTIONS:
 
                 setTimeout(() => {
                     smoothScrollToBottom();
-
-                    if (autoSpeakEnabled && window.voiceAssistant) {
-                        console.log('Auto-speak is enabled, speaking fallback response...');
-                        window.voiceAssistant.stop();
-                        setTimeout(() => {
-                            window.voiceAssistant.speak(intelligentResponse);
-                        }, 200);
-                    }
                 }, 300);
             }
 
@@ -697,14 +687,6 @@ INSTRUCTIONS:
 
             setTimeout(() => {
                 smoothScrollToBottom();
-
-                if (autoSpeakEnabled && window.voiceAssistant) {
-                    console.log('Auto-speak is enabled, speaking error response...');
-                    window.voiceAssistant.stop();
-                    setTimeout(() => {
-                        window.voiceAssistant.speak(localResponse);
-                    }, 200);
-                }
             }, 300);
         }
     }
@@ -959,7 +941,7 @@ INSTRUCTIONS:
 
                 <div class="ai-signature">
                     <div class="signature-text">
-                        Powered by WAHAB VERSE Neural Intelligence • Personalized for You
+                        Powered by Aziona Steam Neural Intelligence • Personalized for You
                     </div>
                 </div>
             </div>
@@ -1006,7 +988,83 @@ INSTRUCTIONS:
     }
 }
 
-// Update the modal show event listener to fix ARIA issues
+// Add this function to properly handle modal closing
+window.closeAIModal = function() {
+    try {
+        // Get the modal instance
+        const modal = bootstrap.Modal.getInstance(document.getElementById('aiChatModal'));
+        
+        if (modal) {
+            // Properly hide the modal
+            modal.hide();
+        } else {
+            // Fallback method
+            const modalElement = document.getElementById('aiChatModal');
+            if (modalElement) {
+                modalElement.classList.remove('show');
+                modalElement.style.display = 'none';
+                modalElement.setAttribute('aria-hidden', 'true');
+                
+                // Remove backdrop manually
+                const backdrop = document.querySelector('.modal-backdrop');
+                if (backdrop) {
+                    backdrop.remove();
+                }
+                
+                // Re-enable body scrolling
+                document.body.classList.remove('modal-open');
+                document.body.style.overflow = '';
+                document.body.style.paddingRight = '';
+            }
+        }
+        
+        // Save chat data
+        saveChatToStorage();
+        
+    } catch (error) {
+        console.error('Error closing modal:', error);
+        
+        // Force close as fallback
+        forceCloseModal();
+    }
+};
+
+// Force close modal function for emergencies
+function forceCloseModal() {
+    try {
+        // Remove all modal elements
+        const modalElement = document.getElementById('aiChatModal');
+        if (modalElement) {
+            modalElement.classList.remove('show', 'fade');
+            modalElement.style.display = 'none';
+            modalElement.setAttribute('aria-hidden', 'true');
+        }
+        
+        // Remove all backdrops
+        const backdrops = document.querySelectorAll('.modal-backdrop');
+        backdrops.forEach(backdrop => backdrop.remove());
+        
+        // Clean up body classes and styles
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+        
+        // Remove any lingering event listeners
+        document.removeEventListener('keydown', escapeKeyHandler);
+        
+    } catch (error) {
+        console.error('Force close failed:', error);
+    }
+}
+
+// Add escape key handler
+function escapeKeyHandler(event) {
+    if (event.key === 'Escape') {
+        closeAIModal();
+    }
+}
+
+// Update the modal event listeners
 const aiModal = document.getElementById('aiChatModal');
 if (aiModal) {
     aiModal.addEventListener('shown.bs.modal', function () {
@@ -1023,13 +1081,55 @@ if (aiModal) {
         setTimeout(() => {
             smoothScrollToBottom();
         }, 200);
+        
+        // Add escape key listener
+        document.addEventListener('keydown', escapeKeyHandler);
     });
 
     aiModal.addEventListener('hidden.bs.modal', function () {
         // Add aria-hidden when modal is hidden
         this.setAttribute('aria-hidden', 'true');
         
+        // Save chat data
         saveChatToStorage();
+        
+        // Clean up
+        document.removeEventListener('keydown', escapeKeyHandler);
+        
+        // Ensure body is properly restored
+        setTimeout(() => {
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+            
+            // Remove any lingering backdrops
+            const backdrops = document.querySelectorAll('.modal-backdrop');
+            backdrops.forEach(backdrop => backdrop.remove());
+        }, 100);
+    });
+    
+    // Handle modal hide failures
+    aiModal.addEventListener('hide.bs.modal', function (event) {
+        // Allow the modal to close
+        return true;
+    });
+}
+
+// Add event listeners for clear chat modal
+const clearModal = document.getElementById('clearChatModal');
+if (clearModal) {
+    clearModal.addEventListener('shown.bs.modal', function () {
+        this.removeAttribute('aria-hidden');
+
+        // Disable body scrolling when clear modal is open
+        document.body.style.overflow = 'hidden';
+    });
+
+    clearModal.addEventListener('hidden.bs.modal', function () {
+        this.setAttribute('aria-hidden', 'true');
+
+        // Re-enable body scrolling
+        document.body.style.overflow = '';
     });
 }
 
@@ -1130,7 +1230,7 @@ function getAvailableMoviesForAI() {
         console.warn('moviesData not available');
         return [];
     }
-    
+
     const allContent = [...moviesData.trending, ...moviesData.movies, ...moviesData.series];
     const uniqueContent = allContent.filter((item, index, self) =>
         index === self.findIndex(t => t.id === item.id)
@@ -1160,7 +1260,7 @@ window.playMovieFromChat = async function (movieId) {
             }
             return;
         }
-        
+
         const allContent = [...moviesData.trending, ...moviesData.movies, ...moviesData.series];
         const movie = allContent.find(item => item.id === movieId);
 
@@ -1177,11 +1277,11 @@ window.playMovieFromChat = async function (movieId) {
         if (typeof showNotification === 'function') {
             showNotification('🎬 Launching your personalized selection...', 'info');
         }
-        
+
         if (typeof showMovieInfo === 'function') {
             await showMovieInfo(movie);
         }
-        
+
         if (typeof showNotification === 'function') {
             showNotification(`🎯 Now featuring: ${movie.title} - Enjoy your AI-curated experience!`, 'success');
         }
@@ -1201,11 +1301,16 @@ function startExperience() {
     }
 
     setTimeout(() => {
-        const aiChatModal = document.getElementById('aiChatModal');
-        if (!aiChatModal) return;
-
-        const modal = new bootstrap.Modal(aiChatModal);
-        modal.show();
+        // Use global modal instance
+        if (aiChatModalInstance) {
+            aiChatModalInstance.show();
+        } else {
+            const aiChatModal = document.getElementById('aiChatModal');
+            if (aiChatModal) {
+                const modal = new bootstrap.Modal(aiChatModal);
+                modal.show();
+            }
+        }
 
         setTimeout(() => {
             const aiChatInput = document.getElementById('aiChatInput');
@@ -1218,20 +1323,22 @@ function startExperience() {
     }, 1000);
 }
 
-function handleAIResponse(aiReply) {
-    addMessage('ai', aiReply);
-
-    // Auto-speak if enabled
-    if (autoSpeakEnabled && window.voiceAssistant) {
-        // Add a small delay to ensure the message is rendered
-        window.voiceAssistant.stop();
-        setTimeout(() => {
-            window.voiceAssistant.speak(aiReply);
-        }, 300);
-    }
-}
-
 // Initialize AI Chat when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     setupAIChat();
+
+    // Initialize modal instances
+    const aiChatModalElement = document.getElementById('aiChatModal');
+    const clearChatModalElement = document.getElementById('clearChatModal');
+
+    if (aiChatModalElement) {
+        aiChatModalInstance = new bootstrap.Modal(aiChatModalElement);
+    }
+
+    if (clearChatModalElement) {
+        clearChatModalInstance = new bootstrap.Modal(clearChatModalElement, {
+            backdrop: 'static',
+            keyboard: false
+        });
+    }
 });
