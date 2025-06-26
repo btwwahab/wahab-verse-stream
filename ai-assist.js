@@ -1196,38 +1196,26 @@ window.playMovieFromChat = async function (movieId) {
 
 // Enhanced start experience function
 function startExperience() {
-  if (typeof showNotification === 'function') {
-    showNotification('🧠 Initializing Advanced Neural System...', 'info');
-  }
-
-  setTimeout(() => {
-    const aiChatModal = document.getElementById('aiChatModal');
-    if (!aiChatModal) {
-      console.error('AI Chat Modal not found');
-      return;
+    if (typeof showNotification === 'function') {
+        showNotification('🧠 Initializing Advanced Neural System...', 'info');
     }
-
-    const modal = new bootstrap.Modal(aiChatModal);
-    modal.show();
 
     setTimeout(() => {
-      const aiChatInput = document.getElementById('aiChatInput');
-      if (aiChatInput) aiChatInput.focus();
-      
-      // Initialize welcome message if needed
-      const aiChatMessages = document.getElementById('aiChatMessages');
-      if (aiChatMessages && !aiChatMessages.querySelector('.ai-welcome-message')) {
-        // Trigger welcome message display
-        if (typeof showWelcomeMessage === 'function') {
-          showWelcomeMessage();
-        }
-      }
-    }, 500);
+        const aiChatModal = document.getElementById('aiChatModal');
+        if (!aiChatModal) return;
 
-    if (typeof showNotification === 'function') {
-      showNotification('🤖 Welcome to the future of entertainment AI!', 'success');
-    }
-  }, 1000);
+        const modal = new bootstrap.Modal(aiChatModal);
+        modal.show();
+
+        setTimeout(() => {
+            const aiChatInput = document.getElementById('aiChatInput');
+            if (aiChatInput) aiChatInput.focus();
+        }, 500);
+
+        if (typeof showNotification === 'function') {
+            showNotification('🤖 Welcome to the future of entertainment AI!', 'success');
+        }
+    }, 1000);
 }
 
 function handleAIResponse(aiReply) {

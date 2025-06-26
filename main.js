@@ -232,7 +232,7 @@ async function showMovieInfo(movie, directPlay = false) {
         <div class="col-md-8">
           <h4 class="mb-3 text-glow" style="color: var(--primary);">${movie.title}</h4>
           <span class="platform-available">
-            <i class="fas fa-check-circle me-1"></i>Available on Aziona Stream
+            <i class="fas fa-check-circle me-1"></i>Available on WAHAB VERSE
           </span>
           <p class="mb-2 mt-3"><strong>Genre:</strong> <span style="color: var(--secondary);">${movie.genre}</span></p>
           <div class="mb-3">
